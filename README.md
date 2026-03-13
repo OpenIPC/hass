@@ -17,93 +17,281 @@
 | ![Снимок экрана 2026-02-22 130426](https://github.com/himik19872/openipc-hass/blob/main/Снимок%20экрана%202026-02-22%20130426.png) | ![Снимок экрана 2026-02-22 130505](https://github.com/himik19872/openipc-hass/blob/main/Снимок%20экрана%202026-02-22%20130505.png) | ![Снимок экрана 2026-02-22 130520](https://github.com/himik19872/openipc-hass/blob/main/Снимок%20экрана%202026-02-22%20130520.png) |
 
 ![Снимок экрана 2026-02-22 130554](https://github.com/himik19872/openipc-hass/blob/main/Снимок%20экрана%202026-02-22%20130554.png)
-## English
+
 
 ### OpenIPC Ecosystem for Home Assistant
 
-This repository contains everything you need to integrate your **OpenIPC**, **Beward**, and **Vivotek** cameras into Home Assistant. It includes a custom integration and a powerful addon (OpenIPC Bridge) for advanced features like **QR code scanning** and **Text-to-Speech (TTS)**.
+Integration for managing OpenIPC, Beward, and Vivotek cameras in Home Assistant with a powerful web interface for advanced features.
 
-### ✨ Features
+✨ Features
+📹 Video Surveillance
+RTSP streams and snapshots
 
-- **📹 Video Surveillance:** RTSP streams, snapshots, recording to HA media.
-- **📊 Monitoring:** CPU temp, FPS, bitrate, SD card status, network stats.
-- **🚨 Events:** Motion detection, door status (Beward), LNPR (Beward).
-- **🔊 Text-to-Speech (TTS):** Voice notifications via camera speaker.
-  - **Beward DS07P-LP:** A-law format.
-  - **OpenIPC:** PCM format.
-- **📱 Notifications:** Telegram with photos and videos.
-- **➕ NEW: QR Code Scanner!** Scan QR codes via the OpenIPC Bridge addon to trigger automations (e.g., open a gate, grant access).
-- **🔄 Blueprint:** Ready-to-use automation blueprint for QR scanning.
+Recording to HA media folder with OSD overlay
 
-### 📦 Installation
+PTZ control for Vivotek
 
-#### 1. OpenIPC Bridge Addon (Required for QR & TTS)
+Relay control for Beward
 
-This addon handles QR scanning and TTS generation, removing the need for complex `shell_command` scripts.
+📊 Monitoring
+CPU temperature, FPS, bitrate
 
-1.  Add this repository to your Supervisor add-on store:
-    *   Go to **Settings → Add-ons → Add-on store → ⋮ → Repositories**.
-    *   Add: `https://github.com/OpenIPC/hass`
-2.  Refresh the page. You'll find the new **OpenIPC Bridge** addon.
-3.  Install and start the addon. It will be available at `http://[your-ha-ip]:5000`.
-4.  **Configure** your cameras via the addon's **Web UI** (`http://[your-ha-ip]:5000/config`). Add your camera IPs, usernames, passwords, and endpoints.
+SD card status, network statistics
 
-#### 2. OpenIPC Integration
+License plate recognition (LNPR) for Beward
 
-You can install the integration via HACS or manually.
+🔊 Text-to-Speech (TTS)
+Google TTS - cloud-based speech synthesis
 
-##### HACS (Recommended)
-1.  Open HACS.
-2.  Go to **Integrations** and click the three dots in the top right → **Custom repositories**.
-3.  Add `https://github.com/OpenIPC/hass` with category **Integration**.
-4.  Click **Add** and then search for "OpenIPC Camera" in HACS to install.
-5.  **Restart** Home Assistant.
+RHVoice - local synthesis (Anna voice) via separate addon
 
-##### Manual
-1.  Download the latest release.
-2.  Copy the `openipc` folder from `custom_components` to your `/config/custom_components/` directory.
-3.  **Restart** Home Assistant.
+Support for Beward (A-law) and OpenIPC (PCM)
 
-### ⚙️ Configuration
+📱 Notifications
+Send photos and videos to Telegram
 
-#### Adding a Camera via UI
-1.  Go to **Settings → Devices & Services**.
-2.  Click **"Add Integration"** and search for **"OpenIPC Camera"**.
-3.  Fill in your camera details. **Crucially, select the correct `Device Type`** (OpenIPC, Beward, Vivotek).
+Visual notification builder
 
-#### Setting up Telegram (Optional)
-Add to your `configuration.yaml`:
+➕ NEW (March 2026)
+🖥️ OpenIPC Bridge Addon with Web UI
+Camera management through beautiful interface
 
-```yaml
-openipc:
-  telegram_bot_token: "YOUR_BOT_TOKEN"
-  telegram_chat_id: "YOUR_CHAT_ID"
-🤖 Blueprint: QR Code Scanner
-This blueprint creates an automation that starts QR scanning on a button press, checks the code, and performs actions like TTS, relay toggling, and Telegram notifications.
+Import cameras from OpenIPC integration
+
+OSD configuration with drag-and-drop preview
+
+QR code generator with Telegram integration
+
+TTS provider selection (Google/RHVoice)
+
+🎨 Visual OSD Editor
+Drag-and-drop regions with mouse
+
+Real-time preview
+
+Save and load templates
+
+Logo support (BMP)
+
+📸 QR Scanner & Generator
+Continuous QR code scanning
+
+Customizable QR code generation
+
+Scan history with CSV export
+
+Send QR codes to Telegram
+
+🔄 Universal Blueprint
+Video recording on door opening
+
+Dynamic OSD with ticking clock
+
+TTS provider selection
+
+Telegram integration
+
+📦 Installation
+1. OpenIPC Bridge Addon (Required for new features)
+bash
+# Add the repository to Supervisor:
+# Settings → Add-ons → Add-on Store → ⋮ → Repositories
+# Add: https://github.com/OpenIPC/hass
+After installation, the addon will be available at http://[YOUR-HA-IP]:5000
+
+2. OpenIPC Integration
+Via HACS (recommended)
+Open HACS → Integrations → ⋮ → Custom repositories
+
+Add https://github.com/OpenIPC/hass with category Integration
+
+Find "OpenIPC Camera" and install
+
+Restart HA
+
+Manual
+Copy the custom_components/openipc folder to /config/custom_components/ and restart HA.
+
+🎮 Using the Addon Web Interface
+After installation, open http://[YOUR-HA-IP]:5000. You'll see the main dashboard.
+
+📹 "Cameras" Tab
+Import from Home Assistant
+Click "Import cameras from HA" - the addon will automatically pull all cameras from the OpenIPC integration with correct settings based on type:
+
+🟦 OpenIPC - standard IP cameras
+
+🟩 Beward - doorbells with relays
+
+🟨 Vivotek - PTZ cameras
+
+Manual Addition
+If you need to add a camera manually, fill out the form:
+
+Name - friendly name
+
+IP Address - e.g., 192.168.1.4
+
+Type - OpenIPC/Beward/Vivotek
+
+Username/Password - access credentials
+
+🖥️ "OSD" Tab (On-Screen Display)
+Visual editor for overlaying text on video:
+
+Select a camera from the list
+
+Configure regions (up to 4):
+
+Region 0 - for logo (BMP)
+
+Regions 1-3 - for text
+
+Drag with mouse - position updates in real-time
+
+Customize appearance:
+
+Text color (RGB picker)
+
+Font size (8-72 px)
+
+Font (Ubuntu Mono, Arial, Times)
+
+Opacity (0-255)
+
+Use variables:
+
+$t - current time (ticks in real-time!)
+
+$B - bitrate
+
+$C - frame counter
+
+$M - memory usage
+
+Save templates for quick application
+
+OSD Examples:
+text
+Region 1: "🚪 DOOR OPEN! 03/13/2026 15:23:45" (red, 48px)
+Region 2: "⏺️ RECORDING: 3 MIN" (yellow, 36px)
+Region 3: "⏱️ 15:23:45" (green, 32px) - ticking clock
+📸 "QR Scanner & Generator" Tab
+Scanner
+Select a camera
+
+Configure expected code (optional)
+
+Click "Start scanning"
+
+When QR code is detected, HA generates openipc_qr_detected event
+
+Generator
+Enter text or URL
+
+Adjust size, colors, error correction level
+
+Click "Generate"
+
+"Save to file" or "Send to Telegram"
+
+History
+All scans are saved
+
+CSV export
+
+Copy code to clipboard
+
+Quick QR generation from history
+
+🔊 "TTS" Tab (Text-to-Speech)
+Voice notification settings with support for different providers:
+
+Available Providers:
+Google TTS - cloud-based, 30+ languages, high quality
+
+RHVoice - local, offline, "Anna" voice (requires separate addon)
 
 How to use:
+Select camera
 
-Go to Settings → Automations → Blueprints.
+Choose provider
 
-Click "Import Blueprint" and paste the raw URL to the blueprint file in this repo: https://github.com/OpenIPC/hass/blob/main/blueprints/automation/openipc/qr_scanner.yaml
+Select language
 
-Click "Preview" and then "Create Automation".
+Enter text
 
-Fill in the required entities:
+Click "Test"
 
-Camera (e.g., camera.openipc_sip)
+Verification:
+Success - green notification
 
-Media Player (e.g., media_player.openipc_sip_speaker)
+Debug files saved to /config/www/tts_debug_*.pcm
 
-Relay (optional, e.g., switch.nspanel_relay_1)
+🤖 Blueprints
+Blueprint 1: QR Scanner (existing in repository)
+yaml
+# Import URL:
+https://github.com/OpenIPC/hass/blob/main/blueprints/automation/openipc/qr_scanner.yaml
+Creates an automation that starts scanning on button press, checks the code, and performs actions:
 
-Expected QR Code
+TTS notification
 
-Trigger Entity (an input_boolean helper you create to start the scan)
+Relay control
 
-Telegram options.
+Telegram notifications
 
-📝 Example Automations
+Blueprint 2: Door Opening Video Recording (NEW!)
+yaml
+# Import URL:
+https://github.com/OpenIPC/hass/blob/main/blueprints/automation/openipc/door_recording.yaml
+Universal automation with advanced features:
+
+Settings:
+Door sensor - any binary_sensor with device_class door
+
+Camera - OpenIPC camera
+
+Media player - camera speaker
+
+TTS provider - Google or RHVoice
+
+Recording duration - 10 to 600 seconds
+
+OSD regions - select numbers for text
+
+Telegram - enable/disable sending
+
+Post-recording time - how many seconds to show ticking clock
+
+What it does:
+Clears old OSD
+
+TTS: "Door open, starting recording" (selected provider)
+
+Sets OSD with date and time (with ticking clock!)
+
+Records video for specified duration
+
+After recording shows ticking clock on screen
+
+TTS: "Recording complete"
+
+Sends video to Telegram (if enabled)
+
+TTS: "Video sent to Telegram"
+
+Clears screen
+
+OSD during recording:
+text
+🚪 DOOR OPEN! 03/13/2026
+⏺️ RECORDING: 3 MIN
+OSD after recording:
+text
+03/13/2026
+⏱️ 15:23:45  (ticks!)
+📝 Automation Examples
 Simple TTS Notification
 yaml
 alias: "Say Hello on Motion"
@@ -118,177 +306,156 @@ action:
     data:
       media_content_id: "Hello, you are on camera!"
       media_content_type: "tts"
-QR Scan for Gate Control
-(The blueprint above does this automatically. Here's the core service call)
-
+      extra:
+        provider: "rhvoice"  # or "google"
+TTS with Dynamic Provider Selection
 yaml
-service: openipc.start_qr_scan
-data:
-  entity_id: camera.openipc_sip
-  expected_code: "my_secret_gate_code"
-  timeout: 60
-🆘 Support
-Check Home Assistant logs.
-
-Check the addon's logs in Supervisor.
-
-Verify camera connectivity (ping).
-
-For TTS issues, check the addon's debug audio files in /config/www/.
-
-🤝 Contributing
-Pull requests are welcome!
-
-📜 License
-MIT
-
-Русский
-OpenIPC Экосистема для Home Assistant
-Этот репозиторий содержит всё необходимое для интеграции ваших камер OpenIPC, Beward и Vivotek в Home Assistant. Включает пользовательскую интеграцию и мощный аддон (OpenIPC Bridge) для расширенных функций, таких как сканирование QR-кодов и Text-to-Speech (TTS).
-
-✨ Возможности
-📹 Видеонаблюдение: RTSP-потоки, снимки, запись в медиа-папку HA.
-
-📊 Мониторинг: Температура CPU, FPS, битрейт, статус SD-карты, сетевая статистика.
-
-🚨 События: Детекция движения, состояние двери (Beward), распознавание номеров (LNPR) для Beward.
-
-🔊 Голосовые оповещения (TTS): Через динамик камеры.
-
-Beward DS07P-LP: Формат A-law.
-
-OpenIPC: Формат PCM.
-
-📱 Уведомления: Telegram с фото и видео.
-
-➕ НОВИНКА: Сканер QR-кодов! Сканируйте QR-коды через аддон OpenIPC Bridge для запуска автоматизаций (например, открыть ворота, предоставить доступ).
-
-🔄 Блюпринт: Готовая автоматизация для сканирования QR-кодов.
-
-📦 Установка
-1. Аддон OpenIPC Bridge (Необходим для QR и TTS)
-Этот аддон обрабатывает сканирование QR и генерацию TTS, избавляя от необходимости в сложных скриптах shell_command.
-
-Добавьте этот репозиторий в магазин аддонов Supervisor:
-
-Перейдите в Настройки → Аддоны → Магазин аддонов → ⋮ → Репозитории.
-
-Добавьте: https://github.com/OpenIPC/hass
-
-Обновите страницу. Вы увидите новый аддон OpenIPC Bridge.
-
-Установите и запустите аддон. Он будет доступен по адресу http://[IP-адрес-вашего-HA]:5000.
-
-Настройте свои камеры через Веб-интерфейс аддона (http://[IP-адрес-вашего-HA]:5000/config). Добавьте IP-адреса камер, имена пользователей, пароли и эндпоинты.
-
-2. Интеграция OpenIPC
-Интеграцию можно установить через HACS или вручную.
-
-HACS (Рекомендуется)
-Откройте HACS.
-
-Перейдите в Интеграции и нажмите три точки в правом верхнем углу → Пользовательские репозитории.
-
-Добавьте https://github.com/OpenIPC/hass с категорией Интеграция.
-
-Нажмите "Добавить", затем найдите "OpenIPC Camera" в HACS и установите.
-
-Перезапустите Home Assistant.
-
-Вручную
-Скачайте последний релиз.
-
-Скопируйте папку openipc из custom_components в вашу директорию /config/custom_components/.
-
-Перезапустите Home Assistant.
-
-⚙️ Настройка
-Добавление камеры через UI
-Перейдите в Настройки → Устройства и службы.
-
-Нажмите "Добавить интеграцию" и найдите "OpenIPC Camera".
-
-Заполните данные камеры. Крайне важно выбрать правильный Тип устройства (OpenIPC, Beward, Vivotek).
-
-Настройка Telegram (Опционально)
-Добавьте в ваш configuration.yaml:
-
-yaml
-openipc:
-  telegram_bot_token: "ВАШ_ТОКЕН_БОТА"
-  telegram_chat_id: "ВАШ_CHAT_ID"
-🤖 Блюпринт: Сканер QR-кодов
-Этот блюпринт создает автоматизацию, которая запускает сканирование по нажатию кнопки, проверяет код и выполняет действия: TTS, управление реле, уведомления в Telegram.
-
-Как использовать:
-
-Перейдите в Настройки → Автоматизации → Сценарии (Blueprints).
-
-Нажмите "Импортировать сценарий" и вставьте сырую ссылку на файл блюпринта в этом репозитории: https://github.com/OpenIPC/hass/blob/main/blueprints/automation/openipc/qr_scanner.yaml
-
-Нажмите "Предпросмотр", затем "Создать автоматизацию".
-
-Заполните необходимые поля:
-
-Камера (например, camera.openipc_sip)
-
-Медиа-плеер (например, media_player.openipc_sip_speaker)
-
-Реле (опционально, например, switch.nspanel_relay_1)
-
-Ожидаемый QR код
-
-Сущность-триггер (вспомогательный input_boolean, который вы создадите для запуска сканирования)
-
-Настройки Telegram.
-
-📝 Примеры автоматизаций
-Простое TTS-уведомление
-yaml
-alias: "Сказать 'Привет' при движении"
-trigger:
-  - platform: state
-    entity_id: binary_sensor.openipc_sip_motion
-    to: "on"
+alias: "TTS with dynamic selection"
+variables:
+  use_rhvoice: true  # toggle here
 action:
   - service: media_player.play_media
     target:
       entity_id: media_player.openipc_sip_speaker
     data:
-      media_content_id: "Привет, вы в кадре!"
+      media_content_id: "Attention, motion detected"
       media_content_type: "tts"
-Сканирование QR для управления воротами
-(Блюпринт выше делает это автоматически. Здесь показан основной вызов сервиса)
-
+      extra:
+        provider: "{{ 'rhvoice' if use_rhvoice else 'google' }}"
+QR Scan for Gate Control
 yaml
-service: openipc.start_qr_scan
-data:
-  entity_id: camera.openipc_sip
-  expected_code: "мой_секретный_код_ворот"
-  timeout: 60
-🆘 Поддержка
-Проверьте логи Home Assistant.
+alias: "Open Gate with QR Code"
+trigger:
+  - platform: event
+    event_type: openipc_qr_detected
+condition:
+  - condition: template
+    value_template: "{{ trigger.event.data.data == 'secret_gate_code' }}"
+action:
+  - service: switch.turn_on
+    entity_id: switch.gate_relay
+  - delay:
+      seconds: 1
+  - service: switch.turn_off
+    entity_id: switch.gate_relay
+  - service: media_player.play_media
+    target:
+      entity_id: media_player.openipc_sip_speaker
+    data:
+      media_content_id: "Access granted, gate open"
+      media_content_type: "tts"
+🔧 Setting up RHVoice (Local TTS)
+To use RHVoice, install a separate addon:
 
-Проверьте логи аддона в Supervisor.
+Add repository: https://github.com/definitio/ha-rhvoice-addon
 
-Убедитесь, что камера доступна (ping).
+Install RHVoice Home Assistant addon
 
-При проблемах с TTS проверьте отладочные аудиофайлы аддона в /config/www/.
+Install RHVoice integration via HACS
 
-🤝 Вклад в проект
-Мы приветствуем ваши пул-реквесты!
+In integration settings, set host: localhost
 
-📜 Лицензия
-MIT
+After this, RHVoice will be available in our blueprint and web interface.
 
+📊 Project Structure
+text
+/
+├── custom_components/openipc/     # HA Integration
+│   ├── __init__.py
+│   ├── api.py
+│   ├── api_ha.py                  # API for addon
+│   ├── beward_device.py
+│   ├── binary_sensor.py
+│   ├── button.py
+│   ├── camera.py
+│   ├── commands.py
+│   ├── config_flow.py
+│   ├── const.py
+│   ├── coordinator.py
+│   ├── diagnostics.py
+│   ├── discovery.py
+│   ├── helpers.py
+│   ├── lnpr.py
+│   ├── media_player.py
+│   ├── migration.py
+│   ├── notify.py
+│   ├── onvif_client.py
+│   ├── openipc_audio.py
+│   ├── osd_manager.py
+│   ├── parsers.py
+│   ├── ptz.py
+│   ├── ptz_entity.py
+│   ├── qr_scanner.py
+│   ├── qr_utils.py
+│   ├── recorder.py
+│   ├── recording.py
+│   ├── select.py
+│   ├── sensor.py
+│   ├── services.py
+│   ├── services_impl.py
+│   ├── switch.py
+│   ├── vivotek_device.py
+│   ├── vivotek_ptz.py
+│   └── vivotek_ptz_entities.py
+│
+├── addon/                          # OpenIPC Bridge Addon
+│   ├── Dockerfile
+│   ├── config.yaml
+│   ├── run.sh
+│   ├── server.py
+│   ├── tts_generate_openipc.sh
+│   ├── tts_generate.sh
+│   ├── tts_generate_rhvoice.sh     # New script for RHVoice
+│   ├── check_modules.py
+│   └── templates/
+│       ├── base.html
+│       ├── index.html
+│       ├── config.html
+│       ├── osd.html                # Visual OSD editor
+│       ├── qr.html                 # QR scanner & generator
+│       └── tts.html                # TTS with provider selection
+│
+└── blueprints/automation/openipc/
+    ├── qr_scanner.yaml             # Existing blueprint
+    └── door_recording.yaml         # NEW blueprint with TTS selection
+🆘 Support & Troubleshooting
+Logs
+Integration: Settings → System → Logs → openipc
 
+Addon: Supervisor → OpenIPC Bridge → Logs
 
+TTS Debug: check /config/www/tts_debug_*.pcm
 
+Common Issues
+OSD not appearing
+Check if OSD service is running on camera (ps | grep osd)
 
+Verify port 9000 accessibility (netstat -tlnp | grep 9000)
 
+In OSD web interface, check opacity settings (opacity: 255)
 
+TTS not working
+Verify camera accessibility (ping)
 
+Check correct endpoint (/play_audio for OpenIPC)
 
+For RHVoice: ensure separate addon is running
 
+Camera import from HA not working
+Verify http dependency in manifest.json
 
+Check endpoint: http://[HA_IP]:8123/api/openipc/cameras
 
+🤝 Contributing
+⭐ Star us on GitHub
+
+🐛 Report issues in Issues
+
+📝 Improve documentation
+
+🔧 Submit Pull Requests
+
+📜 License
+MIT License
+
+OpenIPC Community - making smart homes accessible! 🚀
