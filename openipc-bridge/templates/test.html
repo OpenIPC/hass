@@ -1,0 +1,441 @@
+{% extends "base.html" %}
+{% block title %}Тестовая страница{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="bi bi-camera-video"></i> Тестовая страница диагностики</h2>
+        <p class="text-muted">Прямой MJPEG поток и диагностика камер</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <i class="bi bi-camera"></i> Выбор камеры
+            </div>
+            <div class="card-body">
+                <select class="form-select" id="cameraSelect" onchange="changeCamera()">
+                    <option value="">Выберите камеру...</option>
+                </select>
+                
+                <div class="mt-3">
+                    <label class="form-label">Тип потока:</label>
+                    <div class="btn-group w-100" role="group">
+                        <button class="btn btn-outline-primary active" onclick="setStreamType('mjpeg')" id="btnMjpeg">MJPEG</button>
+                        <button class="btn btn-outline-primary" onclick="setStreamType('snapshot')" id="btnSnapshot">Snapshot</button>
+                        <button class="btn btn-outline-primary" onclick="setStreamType('hls')" id="btnHls">HLS</button>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <button class="btn btn-success w-100" onclick="startStream()">
+                        <i class="bi bi-play"></i> Запустить поток
+                    </button>
+                    <button class="btn btn-danger w-100 mt-2" onclick="stopStream()">
+                        <i class="bi bi-stop"></i> Остановить
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header bg-info text-white">
+                <i class="bi bi-info-circle"></i> Информация
+            </div>
+            <div class="card-body" id="infoPanel">
+                <p>Выберите камеру для тестирования</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="bi bi-camera-video"></i> Видео поток
+                </div>
+                <div>
+                    <span class="badge bg-light text-dark" id="streamStatus">⏸ Остановлено</span>
+                </div>
+            </div>
+            <div class="card-body p-0" style="background: #000; min-height: 400px; position: relative;">
+                <!-- MJPEG поток -->
+                <img id="mjpegStream" src="" style="width: 100%; height: auto; display: none;">
+                
+                <!-- Snapshot (статичное изображение) -->
+                <img id="snapshotImage" src="" style="width: 100%; height: auto; display: none;">
+                
+                <!-- HLS видео -->
+                <video id="hlsVideo" controls style="width: 100%; height: auto; display: none;"></video>
+                
+                <!-- Заглушка -->
+                <div id="noVideo" style="display: flex; align-items: center; justify-content: center; height: 400px; color: #666; flex-direction: column;">
+                    <i class="bi bi-camera-video-off" style="font-size: 4rem;"></i>
+                    <p class="mt-3">Поток не активен</p>
+                </div>
+                
+                <!-- Индикатор загрузки -->
+                <div id="loadingIndicator" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Загрузка...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header bg-warning">
+                <i class="bi bi-bug"></i> Диагностика
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <button class="btn btn-sm btn-outline-primary w-100 mb-2" onclick="testRtsp()">
+                            <i class="bi bi-hdd-network"></i> Тест RTSP
+                        </button>
+                        <button class="btn btn-sm btn-outline-info w-100 mb-2" onclick="testSnapshot()">
+                            <i class="bi bi-camera"></i> Тест Snapshot
+                        </button>
+                        <button class="btn btn-sm btn-outline-success w-100 mb-2" onclick="testHls()">
+                            <i class="bi bi-play-circle"></i> Тест HLS
+                        </button>
+                    </div>
+                    <div class="col-md-6">
+                        <button class="btn btn-sm btn-outline-danger w-100 mb-2" onclick="checkPlaylist()">
+                            <i class="bi bi-file-text"></i> Проверить плейлист
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary w-100 mb-2" onclick="checkFfmpeg()">
+                            <i class="bi bi-terminal"></i> Статус FFmpeg
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="diagnosticResults" class="mt-3" style="background: #1e1e1e; color: #00ff00; padding: 10px; border-radius: 5px; font-family: monospace; max-height: 200px; overflow-y: auto;">
+                    [Ready] Выберите камеру и запустите тест...
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<script>
+let currentCamera = null;
+let streamType = 'mjpeg';
+let hlsInstance = null;
+let mjpegInterval = null;
+
+// Загрузка списка камер
+fetch('/api/cameras/status')
+    .then(r => r.json())
+    .then(data => {
+        const select = document.getElementById('cameraSelect');
+        select.innerHTML = '<option value="">Выберите камеру...</option>';
+        
+        if (data.cameras && data.cameras.length > 0) {
+            data.cameras.forEach(cam => {
+                const statusIcon = cam.online ? '🟢' : '🔴';
+                select.innerHTML += `<option value="${cam.ip}">${statusIcon} ${cam.name} (${cam.ip})</option>`;
+            });
+        }
+    });
+
+function setStreamType(type) {
+    streamType = type;
+    
+    // Обновляем активную кнопку
+    document.querySelectorAll('.btn-group .btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.getElementById(`btn${type.charAt(0).toUpperCase() + type.slice(1)}`).classList.add('active');
+    
+    // Если есть активный поток, перезапускаем
+    if (currentCamera) {
+        stopStream();
+        setTimeout(() => startStream(), 500);
+    }
+}
+
+function changeCamera() {
+    currentCamera = document.getElementById('cameraSelect').value;
+    if (currentCamera) {
+        document.getElementById('infoPanel').innerHTML = `
+            <p><strong>Камера:</strong> ${currentCamera}</p>
+            <p><strong>Тип потока:</strong> ${streamType}</p>
+            <p><strong>Статус:</strong> <span class="text-success">Готов к запуску</span></p>
+        `;
+    }
+}
+
+function startStream() {
+    if (!currentCamera) {
+        alert('Выберите камеру');
+        return;
+    }
+    
+    stopStream();
+    
+    document.getElementById('noVideo').style.display = 'none';
+    document.getElementById('loadingIndicator').style.display = 'block';
+    document.getElementById('streamStatus').innerHTML = '⏳ Запуск...';
+    
+    if (streamType === 'mjpeg') {
+        startMjpeg();
+    } else if (streamType === 'snapshot') {
+        startSnapshot();
+    } else {
+        startHls();
+    }
+}
+
+function startMjpeg() {
+    const img = document.getElementById('mjpegStream');
+    const snapshot = document.getElementById('snapshotImage');
+    const video = document.getElementById('hlsVideo');
+    
+    img.style.display = 'block';
+    snapshot.style.display = 'none';
+    video.style.display = 'none';
+    
+    // MJPEG поток
+    img.src = `/api/camera/${currentCamera}/snapshot?_=${Date.now()}`;
+    
+    // Обновляем каждые 100мс для имитации потока
+    mjpegInterval = setInterval(() => {
+        img.src = `/api/camera/${currentCamera}/snapshot?_=${Date.now()}`;
+    }, 200);
+    
+    document.getElementById('loadingIndicator').style.display = 'none';
+    document.getElementById('streamStatus').innerHTML = '▶ MJPEG поток активен';
+    
+    addDiagnostic('info', `MJPEG поток запущен для ${currentCamera}`);
+}
+
+function startSnapshot() {
+    const img = document.getElementById('snapshotImage');
+    const mjpeg = document.getElementById('mjpegStream');
+    const video = document.getElementById('hlsVideo');
+    
+    img.style.display = 'block';
+    mjpeg.style.display = 'none';
+    video.style.display = 'none';
+    
+    // Просто snapshot, обновляем раз в секунду
+    img.src = `/api/camera/${currentCamera}/snapshot?_=${Date.now()}`;
+    
+    if (mjpegInterval) clearInterval(mjpegInterval);
+    mjpegInterval = setInterval(() => {
+        img.src = `/api/camera/${currentCamera}/snapshot?_=${Date.now()}`;
+    }, 1000);
+    
+    document.getElementById('loadingIndicator').style.display = 'none';
+    document.getElementById('streamStatus').innerHTML = '▶ Snapshot режим (1 fps)';
+    
+    addDiagnostic('info', `Snapshot режим для ${currentCamera}`);
+}
+
+function startHls() {
+    const img = document.getElementById('snapshotImage');
+    const mjpeg = document.getElementById('mjpegStream');
+    const video = document.getElementById('hlsVideo');
+    
+    img.style.display = 'none';
+    mjpeg.style.display = 'none';
+    video.style.display = 'block';
+    
+    // Запускаем HLS поток
+    fetch(`/api/video/start_hls/${currentCamera}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({stream: 'sub'})
+    })
+    .then(r => r.json())
+    .then(data => {
+        document.getElementById('loadingIndicator').style.display = 'none';
+        
+        if (data.success) {
+            if (Hls.isSupported()) {
+                if (hlsInstance) hlsInstance.destroy();
+                hlsInstance = new Hls();
+                hlsInstance.loadSource(data.hls_url);
+                hlsInstance.attachMedia(video);
+                hlsInstance.on(Hls.Events.MANIFEST_PARSED, function() {
+                    video.play();
+                });
+                
+                // Обработка ошибок HLS
+                hlsInstance.on(Hls.Events.ERROR, function(event, data) {
+                    if (data.fatal) {
+                        addDiagnostic('error', `HLS ошибка: ${data.type} - ${data.details}`);
+                    }
+                });
+                
+                document.getElementById('streamStatus').innerHTML = '▶ HLS поток активен';
+                addDiagnostic('success', `HLS запущен: ${data.hls_url}`);
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = data.hls_url;
+                video.play();
+                document.getElementById('streamStatus').innerHTML = '▶ HLS поток активен (native)';
+                addDiagnostic('success', `HLS запущен (native): ${data.hls_url}`);
+            } else {
+                addDiagnostic('error', 'HLS не поддерживается браузером');
+            }
+        } else {
+            document.getElementById('streamStatus').innerHTML = '❌ Ошибка запуска HLS';
+            addDiagnostic('error', `Ошибка HLS: ${data.error || 'Unknown'}`);
+        }
+    });
+}
+
+function stopStream() {
+    if (mjpegInterval) {
+        clearInterval(mjpegInterval);
+        mjpegInterval = null;
+    }
+    
+    if (hlsInstance) {
+        hlsInstance.destroy();
+        hlsInstance = null;
+    }
+    
+    document.getElementById('mjpegStream').src = '';
+    document.getElementById('snapshotImage').src = '';
+    document.getElementById('hlsVideo').src = '';
+    
+    document.getElementById('mjpegStream').style.display = 'none';
+    document.getElementById('snapshotImage').style.display = 'none';
+    document.getElementById('hlsVideo').style.display = 'none';
+    document.getElementById('noVideo').style.display = 'flex';
+    document.getElementById('streamStatus').innerHTML = '⏸ Остановлено';
+    
+    if (currentCamera) {
+        // Останавливаем HLS на сервере
+        fetch(`/api/video/stop_hls/${currentCamera}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({stream: 'sub'})
+        }).catch(e => console.log('Error stopping HLS:', e));
+    }
+}
+
+function addDiagnostic(type, message) {
+    const results = document.getElementById('diagnosticResults');
+    const time = new Date().toLocaleTimeString();
+    const color = type === 'error' ? '#ff6b6b' : (type === 'success' ? '#69db7e' : '#4dabf7');
+    
+    results.innerHTML += `<div style="color: ${color}">[${time}] ${message}</div>`;
+    results.scrollTop = results.scrollHeight;
+    
+    if (results.children.length > 30) {
+        results.removeChild(results.firstChild);
+    }
+}
+
+function testRtsp() {
+    if (!currentCamera) {
+        alert('Выберите камеру');
+        return;
+    }
+    
+    addDiagnostic('info', `🔍 Тест RTSP для ${currentCamera}...`);
+    
+    fetch(`/api/video/diagnose_rtsp/${currentCamera}`)
+        .then(r => r.json())
+        .then(data => {
+            addDiagnostic('info', `HTTP: ${data.http_check ? '✅' : '❌'}`);
+            
+            for (const [port, status] of Object.entries(data.rtsp_ports)) {
+                addDiagnostic('info', `Порт ${port}: ${status ? '✅' : '❌'}`);
+            }
+            
+            const workingPaths = Object.entries(data.rtsp_streams)
+                .filter(([_, status]) => status)
+                .map(([path]) => path);
+            
+            if (workingPaths.length > 0) {
+                addDiagnostic('success', `✅ Рабочие пути: ${workingPaths.join(', ')}`);
+            } else {
+                addDiagnostic('error', '❌ Нет рабочих RTSP путей');
+            }
+        });
+}
+
+function testSnapshot() {
+    if (!currentCamera) return;
+    
+    addDiagnostic('info', `📸 Тест snapshot для ${currentCamera}...`);
+    
+    fetch(`/api/camera/${currentCamera}/snapshot`)
+        .then(r => {
+            if (r.ok) {
+                return r.blob().then(blob => {
+                    addDiagnostic('success', `✅ Snapshot получен: ${(blob.size/1024).toFixed(1)} KB`);
+                });
+            } else {
+                addDiagnostic('error', `❌ HTTP ${r.status}`);
+            }
+        });
+}
+
+function testHls() {
+    if (!currentCamera) return;
+    
+    addDiagnostic('info', `📹 Тест HLS для ${currentCamera}...`);
+    
+    fetch(`/api/video/hls_status/${currentCamera}`)
+        .then(r => r.json())
+        .then(data => {
+            addDiagnostic('info', `HLS main: ${data.main ? '✅' : '❌'}, sub: ${data.sub ? '✅' : '❌'}`);
+        });
+}
+
+function checkPlaylist() {
+    if (!currentCamera) return;
+    
+    const streamName = `${currentCamera}_sub`;
+    addDiagnostic('info', `📋 Проверка плейлиста ${streamName}...`);
+    
+    fetch(`/api/video/hls/${streamName}.m3u8`)
+        .then(r => {
+            if (r.ok) {
+                return r.text().then(text => {
+                    addDiagnostic('success', `✅ Плейлист получен (${text.length} байт)`);
+                    const lines = text.split('\n');
+                    const segments = lines.filter(l => l.endsWith('.ts'));
+                    addDiagnostic('info', `Сегментов: ${segments.length}`);
+                    if (segments.length > 0) {
+                        addDiagnostic('info', `Первый сегмент: ${segments[0]}`);
+                    }
+                });
+            } else {
+                addDiagnostic('error', `❌ HTTP ${r.status}`);
+            }
+        });
+}
+
+function checkFfmpeg() {
+    fetch('/api/video/managers')
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                addDiagnostic('info', `🎬 Активных FFmpeg процессов: ${data.managers.length}`);
+                data.managers.forEach(m => {
+                    const stats = m.stats;
+                    addDiagnostic('info', 
+                        `${stats.is_alive ? '🟢' : '🔴'} ${stats.output_name}: ` +
+                        `аптайм ${Math.round(stats.uptime)}с, ` +
+                        `рестартов: ${stats.restart_count}`
+                    );
+                });
+            }
+        });
+}
+
+// Очистка при уходе со страницы
+window.addEventListener('beforeunload', function() {
+    stopStream();
+});
+</script>
+{% endblock %}

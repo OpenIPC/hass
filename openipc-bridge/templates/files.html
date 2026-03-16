@@ -1,0 +1,429 @@
+{% extends "base.html" %}
+{% block nav_files %}active{% endblock %}
+{% block title %}Управление файлами{% endblock %}
+
+{% block extra_css %}
+<style>
+    .file-manager {
+        background: #1a1a1a;
+        border-radius: 10px;
+        padding: 20px;
+        color: #fff;
+    }
+    
+    .file-list {
+        margin-top: 20px;
+    }
+    
+    .file-item {
+        background: #2d2d2d;
+        border-radius: 5px;
+        padding: 15px;
+        margin-bottom: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: all 0.3s;
+    }
+    
+    .file-item:hover {
+        background: #3d3d3d;
+        transform: translateX(5px);
+    }
+    
+    .file-info {
+        flex: 1;
+    }
+    
+    .file-name {
+        font-weight: bold;
+        color: #0d6efd;
+        font-size: 16px;
+    }
+    
+    .file-meta {
+        font-size: 12px;
+        color: #aaa;
+        margin-top: 5px;
+    }
+    
+    .file-actions {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .file-btn {
+        padding: 8px 15px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-size: 13px;
+    }
+    
+    .file-btn.edit {
+        background: #28a745;
+        color: white;
+    }
+    
+    .file-btn.edit:hover {
+        background: #218838;
+    }
+    
+    .file-btn.download {
+        background: #0d6efd;
+        color: white;
+    }
+    
+    .file-btn.download:hover {
+        background: #0b5ed7;
+    }
+    
+    .file-btn.backup {
+        background: #ffc107;
+        color: black;
+    }
+    
+    .file-btn.backup:hover {
+        background: #e0a800;
+    }
+    
+    .upload-area {
+        border: 2px dashed #444;
+        border-radius: 10px;
+        padding: 40px;
+        text-align: center;
+        margin-bottom: 20px;
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+    
+    .upload-area:hover {
+        border-color: #0d6efd;
+        background: rgba(13, 110, 253, 0.1);
+    }
+    
+    .upload-area.dragover {
+        border-color: #28a745;
+        background: rgba(40, 167, 69, 0.1);
+    }
+    
+    .upload-icon {
+        font-size: 48px;
+        color: #666;
+        margin-bottom: 10px;
+    }
+    
+    .code-editor {
+        background: #1e1e1e;
+        border-radius: 5px;
+        padding: 15px;
+        margin-top: 20px;
+        border: 1px solid #333;
+    }
+    
+    .code-editor textarea {
+        width: 100%;
+        min-height: 400px;
+        background: #2d2d2d;
+        color: #fff;
+        border: 1px solid #444;
+        border-radius: 5px;
+        padding: 10px;
+        font-family: 'Courier New', monospace;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+    
+    .code-editor textarea:focus {
+        outline: none;
+        border-color: #0d6efd;
+    }
+    
+    .editor-toolbar {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+    
+    .status-message {
+        padding: 10px;
+        border-radius: 5px;
+        margin-top: 10px;
+        display: none;
+    }
+    
+    .status-success {
+        background: rgba(40, 167, 69, 0.2);
+        color: #28a745;
+        border: 1px solid #28a745;
+    }
+    
+    .status-error {
+        background: rgba(220, 53, 69, 0.2);
+        color: #dc3545;
+        border: 1px solid #dc3545;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="file-manager">
+    <h2><i class="bi bi-folder"></i> Управление файлами аддона</h2>
+    <p class="text-muted">Загружайте и редактируйте файлы прямо через веб-интерфейс</p>
+    
+    <!-- Область загрузки -->
+    <div class="upload-area" id="uploadArea">
+        <div class="upload-icon">
+            <i class="bi bi-cloud-upload"></i>
+        </div>
+        <h4>Перетащите файл сюда или кликните для выбора</h4>
+        <p class="text-muted">Поддерживаются файлы: .py, .sh, .html, .yaml, .txt</p>
+        <input type="file" id="fileInput" style="display: none;" accept=".py,.sh,.html,.yaml,.txt,.json">
+    </div>
+    
+    <!-- Статус сообщение -->
+    <div id="statusMessage" class="status-message"></div>
+    
+    <!-- Список файлов -->
+    <div class="file-list">
+        <h3><i class="bi bi-list-ul"></i> Доступные файлы</h3>
+        <div id="filesList">
+            <!-- Загружается через JS -->
+            <div class="text-center p-4">
+                <div class="spinner-border text-primary"></div>
+                <p class="mt-2">Загрузка списка файлов...</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Редактор кода -->
+    <div class="code-editor" id="codeEditor" style="display: none;">
+        <div class="editor-toolbar">
+            <h4 style="flex: 1;" id="currentFileName"></h4>
+            <button class="file-btn edit" onclick="saveFile()">
+                <i class="bi bi-save"></i> Сохранить
+            </button>
+            <button class="file-btn backup" onclick="closeEditor()">
+                <i class="bi bi-x"></i> Закрыть
+            </button>
+        </div>
+        <textarea id="fileContent" placeholder="Содержимое файла..."></textarea>
+    </div>
+</div>
+
+<script>
+// Загрузка списка файлов
+function loadFiles() {
+    fetch('/api/files/list')
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                renderFileList(data.files);
+            } else {
+                showStatus('error', 'Ошибка загрузки списка файлов');
+            }
+        })
+        .catch(e => {
+            console.error('Error loading files:', e);
+        });
+}
+
+// Отрисовка списка файлов
+function renderFileList(files) {
+    const list = document.getElementById('filesList');
+    
+    if (files.length === 0) {
+        list.innerHTML = '<div class="text-center p-4 text-muted">Нет доступных файлов</div>';
+        return;
+    }
+    
+    let html = '';
+    files.forEach(file => {
+        const size = (file.size / 1024).toFixed(2);
+        const date = new Date(file.modified).toLocaleString();
+        
+        html += `
+            <div class="file-item">
+                <div class="file-info">
+                    <div class="file-name">
+                        <i class="bi bi-file-code"></i> ${file.name}
+                    </div>
+                    <div class="file-meta">
+                        Размер: ${size} KB | Изменен: ${date}
+                    </div>
+                </div>
+                <div class="file-actions">
+                    <button class="file-btn edit" onclick="editFile('${file.name}')">
+                        <i class="bi bi-pencil"></i> Редактировать
+                    </button>
+                    <button class="file-btn download" onclick="downloadFile('${file.name}')">
+                        <i class="bi bi-download"></i> Скачать
+                    </button>
+                    <button class="file-btn backup" onclick="backupFile('${file.name}')">
+                        <i class="bi bi-clock-history"></i> Бэкап
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+    
+    list.innerHTML = html;
+}
+
+// Редактирование файла
+function editFile(filename) {
+    showStatus('info', `Загрузка ${filename}...`);
+    
+    fetch(`/api/files/get/${filename}`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('currentFileName').textContent = filename;
+                document.getElementById('fileContent').value = data.content;
+                document.getElementById('codeEditor').style.display = 'block';
+                showStatus('success', `Файл ${filename} загружен`);
+            } else {
+                showStatus('error', data.error || 'Ошибка загрузки файла');
+            }
+        })
+        .catch(e => {
+            showStatus('error', `Ошибка: ${e.message}`);
+        });
+}
+
+// Сохранение файла
+function saveFile() {
+    const filename = document.getElementById('currentFileName').textContent;
+    const content = document.getElementById('fileContent').value;
+    
+    showStatus('info', 'Сохранение...');
+    
+    fetch('/api/files/save', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            filename: filename,
+            content: content
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showStatus('success', 'Файл сохранен');
+            loadFiles(); // Обновляем список
+        } else {
+            showStatus('error', data.error || 'Ошибка сохранения');
+        }
+    })
+    .catch(e => {
+        showStatus('error', `Ошибка: ${e.message}`);
+    });
+}
+
+// Закрытие редактора
+function closeEditor() {
+    document.getElementById('codeEditor').style.display = 'none';
+    document.getElementById('currentFileName').textContent = '';
+    document.getElementById('fileContent').value = '';
+}
+
+// Скачивание файла
+function downloadFile(filename) {
+    window.location.href = `/api/files/download/${filename}`;
+}
+
+// Создание бэкапа
+function backupFile(filename) {
+    showStatus('info', 'Создание бэкапа...');
+    
+    fetch(`/api/files/backup/${filename}`, {method: 'POST'})
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showStatus('success', `Бэкап создан: ${data.backup}`);
+                loadFiles();
+            } else {
+                showStatus('error', data.error || 'Ошибка создания бэкапа');
+            }
+        })
+        .catch(e => {
+            showStatus('error', `Ошибка: ${e.message}`);
+        });
+}
+
+// Отображение статуса
+function showStatus(type, message) {
+    const statusDiv = document.getElementById('statusMessage');
+    statusDiv.style.display = 'block';
+    statusDiv.className = `status-message status-${type}`;
+    statusDiv.innerHTML = `<i class="bi bi-info-circle"></i> ${message}`;
+    
+    setTimeout(() => {
+        statusDiv.style.display = 'none';
+    }, 5000);
+}
+
+// Загрузка файла через drag & drop
+const uploadArea = document.getElementById('uploadArea');
+const fileInput = document.getElementById('fileInput');
+
+uploadArea.addEventListener('click', () => {
+    fileInput.click();
+});
+
+uploadArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    uploadArea.classList.add('dragover');
+});
+
+uploadArea.addEventListener('dragleave', () => {
+    uploadArea.classList.remove('dragover');
+});
+
+uploadArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadArea.classList.remove('dragover');
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        uploadFile(files[0]);
+    }
+});
+
+fileInput.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) {
+        uploadFile(e.target.files[0]);
+    }
+});
+
+function uploadFile(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    showStatus('info', `Загрузка ${file.name}...`);
+    
+    fetch('/api/files/upload', {
+        method: 'POST',
+        body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showStatus('success', `Файл ${file.name} загружен`);
+            loadFiles();
+        } else {
+            showStatus('error', data.error || 'Ошибка загрузки');
+        }
+    })
+    .catch(e => {
+        showStatus('error', `Ошибка: ${e.message}`);
+    });
+}
+
+// Инициализация
+document.addEventListener('DOMContentLoaded', () => {
+    loadFiles();
+});
+</script>
+{% endblock %}

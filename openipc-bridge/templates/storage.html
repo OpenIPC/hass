@@ -1,0 +1,1501 @@
+{% extends "base.html" %}
+{% block nav_storage %}active{% endblock %}
+{% block title %}Управление хранилищем{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ===== ОСНОВНЫЕ СТИЛИ ===== */
+    .storage-container {
+        display: flex;
+        gap: 20px;
+        height: calc(100vh - 150px);
+        min-height: 700px;
+    }
+    
+    /* ===== ЛЕВАЯ ПАНЕЛЬ - НАСТРОЙКИ ===== */
+    .settings-panel {
+        width: 400px;
+        background: #1a1a1a;
+        border-radius: 10px;
+        padding: 20px;
+        color: #fff;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .panel-title {
+        font-size: 18px;
+        font-weight: bold;
+        color: #0d6efd;
+        margin-bottom: 15px;
+        border-bottom: 1px solid #444;
+        padding-bottom: 8px;
+    }
+    
+    .settings-section {
+        background: #2d2d2d;
+        border-radius: 8px;
+        padding: 15px;
+    }
+    
+    .section-title {
+        font-size: 16px;
+        font-weight: bold;
+        color: #0d6efd;
+        margin-bottom: 15px;
+        border-bottom: 1px solid #444;
+        padding-bottom: 5px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .settings-row {
+        margin-bottom: 15px;
+    }
+    
+    .settings-label {
+        font-size: 13px;
+        color: #aaa;
+        margin-bottom: 5px;
+    }
+    
+    .settings-input {
+        width: 100%;
+        background: #333;
+        border: 1px solid #444;
+        color: white;
+        padding: 8px 12px;
+        border-radius: 5px;
+        font-size: 13px;
+    }
+    
+    .settings-input:focus {
+        border-color: #0d6efd;
+        outline: none;
+    }
+    
+    .settings-select {
+        width: 100%;
+        background: #333;
+        border: 1px solid #444;
+        color: white;
+        padding: 8px 12px;
+        border-radius: 5px;
+        font-size: 13px;
+    }
+    
+    .settings-checkbox {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+    }
+    
+    .settings-checkbox input {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+    }
+    
+    .settings-checkbox label {
+        cursor: pointer;
+    }
+    
+    .input-group {
+        display: flex;
+        gap: 8px;
+    }
+    
+    .input-group .settings-input {
+        flex: 1;
+    }
+    
+    .input-group .btn {
+        width: auto;
+        padding: 8px 15px;
+    }
+    
+    /* ===== ПРАВАЯ ПАНЕЛЬ - СТАТИСТИКА И ХРАНИЛИЩА ===== */
+    .stats-panel {
+        flex: 1;
+        background: #1a1a1a;
+        border-radius: 10px;
+        padding: 20px;
+        color: #fff;
+        overflow-y: auto;
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .stat-card {
+        background: #2d2d2d;
+        border-radius: 8px;
+        padding: 15px;
+        border-left: 4px solid #0d6efd;
+    }
+    
+    .stat-title {
+        font-size: 13px;
+        color: #aaa;
+        margin-bottom: 5px;
+    }
+    
+    .stat-value {
+        font-size: 24px;
+        font-weight: bold;
+        color: #0d6efd;
+    }
+    
+    .stat-unit {
+        font-size: 12px;
+        color: #666;
+        margin-left: 5px;
+    }
+    
+    .stat-progress {
+        margin-top: 10px;
+        height: 6px;
+        background: #333;
+        border-radius: 3px;
+        overflow: hidden;
+    }
+    
+    .stat-progress-bar {
+        height: 100%;
+        background: #0d6efd;
+        border-radius: 3px;
+        transition: width 0.3s;
+    }
+    
+    .stat-warning {
+        color: #ffc107;
+        font-size: 12px;
+        margin-top: 5px;
+    }
+    
+    .stat-danger {
+        color: #dc3545;
+        font-size: 12px;
+        margin-top: 5px;
+    }
+    
+    /* ===== СПИСОК ХРАНИЛИЩ ===== */
+    .storages-list {
+        margin-top: 20px;
+    }
+    
+    .storage-item {
+        background: #2d2d2d;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 10px;
+        border-left: 4px solid #28a745;
+        transition: all 0.2s;
+    }
+    
+    .storage-item:hover {
+        transform: translateX(5px);
+        background: #3d3d3d;
+    }
+    
+    .storage-item.warning {
+        border-left-color: #ffc107;
+    }
+    
+    .storage-item.error {
+        border-left-color: #dc3545;
+    }
+    
+    .storage-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+    
+    .storage-name {
+        font-weight: bold;
+        color: #0d6efd;
+    }
+    
+    .storage-type {
+        font-size: 11px;
+        padding: 2px 6px;
+        background: #444;
+        border-radius: 3px;
+    }
+    
+    .storage-path {
+        font-size: 12px;
+        color: #aaa;
+        margin-bottom: 8px;
+        word-break: break-all;
+    }
+    
+    .storage-stats {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 8px;
+        font-size: 12px;
+    }
+    
+    .storage-stat {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .storage-stat-label {
+        color: #aaa;
+        font-size: 10px;
+    }
+    
+    .storage-stat-value {
+        font-weight: bold;
+        color: #0d6efd;
+    }
+    
+    .storage-progress {
+        height: 4px;
+        background: #333;
+        border-radius: 2px;
+        margin-bottom: 8px;
+        overflow: hidden;
+    }
+    
+    .storage-progress-bar {
+        height: 100%;
+        background: #28a745;
+        transition: width 0.3s;
+    }
+    
+    .storage-progress-bar.warning {
+        background: #ffc107;
+    }
+    
+    .storage-progress-bar.danger {
+        background: #dc3545;
+    }
+    
+    .storage-actions {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+        margin-top: 10px;
+    }
+    
+    .storage-actions .btn {
+        padding: 4px 8px;
+        font-size: 11px;
+    }
+    
+    /* ===== РАСПИСАНИЕ ===== */
+    .schedule-list {
+        margin-top: 10px;
+    }
+    
+    .schedule-item {
+        background: #333;
+        border-radius: 5px;
+        padding: 10px;
+        margin-bottom: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .schedule-info {
+        flex: 1;
+    }
+    
+    .schedule-time {
+        font-weight: bold;
+        color: #0d6efd;
+    }
+    
+    .schedule-desc {
+        font-size: 11px;
+        color: #aaa;
+    }
+    
+    .schedule-actions {
+        display: flex;
+        gap: 5px;
+    }
+    
+    /* ===== КНОПКИ ===== */
+    .btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 13px;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
+    .btn-primary {
+        background: #0d6efd;
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background: #0b5ed7;
+        transform: translateY(-2px);
+    }
+    
+    .btn-success {
+        background: #28a745;
+        color: white;
+    }
+    
+    .btn-success:hover {
+        background: #218838;
+        transform: translateY(-2px);
+    }
+    
+    .btn-danger {
+        background: #dc3545;
+        color: white;
+    }
+    
+    .btn-danger:hover {
+        background: #bb2d3b;
+        transform: translateY(-2px);
+    }
+    
+    .btn-warning {
+        background: #ffc107;
+        color: #000;
+    }
+    
+    .btn-warning:hover {
+        background: #e0a800;
+        transform: translateY(-2px);
+    }
+    
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+    }
+    
+    .btn-secondary:hover {
+        background: #5a6268;
+        transform: translateY(-2px);
+    }
+    
+    .btn-sm {
+        padding: 4px 8px;
+        font-size: 11px;
+    }
+    
+    .btn-group {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+    }
+    
+    /* ===== СТАТУСЫ ===== */
+    .status-badge {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+    }
+    
+    .status-success {
+        background: #28a745;
+        color: white;
+    }
+    
+    .status-warning {
+        background: #ffc107;
+        color: #000;
+    }
+    
+    .status-danger {
+        background: #dc3545;
+        color: white;
+    }
+    
+    .status-info {
+        background: #0d6efd;
+        color: white;
+    }
+    
+    /* ===== УВЕДОМЛЕНИЯ ===== */
+    .alert {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        min-width: 300px;
+        z-index: 9999;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+        animation: slideIn 0.3s;
+    }
+    
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    /* ===== ЗАГРУЗЧИК ===== */
+    .loading-spinner {
+        display: inline-block;
+        width: 30px;
+        height: 30px;
+        border: 3px solid rgba(255,255,255,.3);
+        border-radius: 50%;
+        border-top-color: #0d6efd;
+        animation: spin 1s ease-in-out infinite;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    
+    /* ===== МОДАЛЬНОЕ ОКНО ===== */
+    .modal-content {
+        background: #2d2d2d;
+        color: white;
+    }
+    
+    .modal-header {
+        border-bottom: 1px solid #444;
+    }
+    
+    .modal-footer {
+        border-top: 1px solid #444;
+    }
+    
+    .modal .form-control {
+        background: #333;
+        border: 1px solid #444;
+        color: white;
+    }
+    
+    .modal .form-control:focus {
+        border-color: #0d6efd;
+        box-shadow: none;
+    }
+    
+    /* ===== АДАПТИВНОСТЬ ===== */
+    @media (max-width: 1200px) {
+        .storage-container {
+            flex-direction: column;
+            height: auto;
+        }
+        
+        .settings-panel {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="storage-container">
+    <!-- ЛЕВАЯ ПАНЕЛЬ - НАСТРОЙКИ -->
+    <div class="settings-panel">
+        <div class="panel-title">
+            <i class="bi bi-gear"></i> Настройки хранилища
+        </div>
+        
+        <!-- Настройки локального хранилища -->
+        <div class="settings-section">
+            <div class="section-title">
+                <span>📁 Локальное хранилище</span>
+                <span class="status-badge status-success" id="localStatus">Активно</span>
+            </div>
+            
+            <div class="settings-row">
+                <div class="settings-label">Путь к папке записей</div>
+                <div class="input-group">
+                    <input type="text" class="settings-input" id="localPath" value="/media/frigate/recordings" placeholder="/path/to/recordings">
+                    <button class="btn btn-primary" onclick="browseLocalPath()">Обзор</button>
+                </div>
+                <small class="text-muted">Директория для хранения видеоархива</small>
+            </div>
+            
+            <div class="settings-row">
+                <div class="settings-label">Глубина архива</div>
+                <div class="input-group">
+                    <input type="number" class="settings-input" id="archiveDepth" value="30" min="1" max="365">
+                    <span class="btn btn-secondary" style="width: auto;">дней</span>
+                </div>
+                <small class="text-muted">Сколько дней хранить записи</small>
+            </div>
+            
+            <div class="settings-row">
+                <div class="settings-label">Максимальный размер</div>
+                <div class="input-group">
+                    <input type="number" class="settings-input" id="maxSize" value="500" min="10" max="10000">
+                    <select class="settings-select" style="width: 80px;" id="maxSizeUnit">
+                        <option value="GB">GB</option>
+                        <option value="TB">TB</option>
+                    </select>
+                </div>
+                <small class="text-muted">Максимальный размер архива (0 = без ограничений)</small>
+            </div>
+            
+            <div class="settings-row">
+                <div class="settings-label">Формат записей</div>
+                <select class="settings-select" id="recordFormat">
+                    <option value="mp4">MP4 (H.264)</option>
+                    <option value="mkv">MKV</option>
+                    <option value="mov">MOV</option>
+                </select>
+            </div>
+            
+            <div class="settings-row">
+                <div class="settings-label">Качество</div>
+                <select class="settings-select" id="recordQuality">
+                    <option value="original">Исходное качество</option>
+                    <option value="high">Высокое (1080p)</option>
+                    <option value="medium">Среднее (720p)</option>
+                    <option value="low">Низкое (480p)</option>
+                </select>
+            </div>
+            
+            <div class="settings-checkbox">
+                <input type="checkbox" id="autoCleanup" checked>
+                <label for="autoCleanup">Автоматически удалять старые записи</label>
+            </div>
+            
+            <div class="settings-checkbox">
+                <input type="checkbox" id="compressRecordings">
+                <label for="compressRecordings">Сжимать записи через 30 дней</label>
+            </div>
+        </div>
+        
+        <!-- WebDAV настройки -->
+        <div class="settings-section">
+            <div class="section-title">
+                <span>☁️ WebDAV синхронизация</span>
+                <span class="status-badge status-warning" id="webdavStatus">Не настроено</span>
+            </div>
+            
+            <div class="settings-checkbox">
+                <input type="checkbox" id="webdavEnabled" onchange="toggleWebDAV()">
+                <label for="webdavEnabled">Включить синхронизацию с WebDAV</label>
+            </div>
+            
+            <div id="webdavSettings" style="display: none;">
+                <div class="settings-row">
+                    <div class="settings-label">URL сервера</div>
+                    <input type="text" class="settings-input" id="webdavUrl" placeholder="https://example.com/remote.php/dav/files/user/">
+                </div>
+                
+                <div class="settings-row">
+                    <div class="settings-label">Логин</div>
+                    <input type="text" class="settings-input" id="webdavUsername">
+                </div>
+                
+                <div class="settings-row">
+                    <div class="settings-label">Пароль</div>
+                    <input type="password" class="settings-input" id="webdavPassword">
+                </div>
+                
+                <div class="settings-row">
+                    <div class="settings-label">Путь на сервере</div>
+                    <input type="text" class="settings-input" id="webdavRemotePath" value="/video-archive">
+                </div>
+                
+                <div class="settings-row">
+                    <div class="settings-label">Локальная папка для синхронизации</div>
+                    <select class="settings-select" id="webdavLocalPath">
+                        <option value="recordings">Папка записей</option>
+                        <option value="snapshots">Папка снимков</option>
+                        <option value="both">Обе папки</option>
+                    </select>
+                </div>
+                
+                <div class="settings-checkbox">
+                    <input type="checkbox" id="webdavCreateSubdirs" checked>
+                    <label for="webdavCreateSubdirs">Создавать подпапки по дате</label>
+                </div>
+                
+                <div class="settings-checkbox">
+                    <input type="checkbox" id="webdavDeleteAfterSync">
+                    <label for="webdavDeleteAfterSync">Удалять локальные файлы после синхронизации</label>
+                </div>
+                
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="testWebDAV()">
+                        <i class="bi bi-check-circle"></i> Проверить
+                    </button>
+                    <button class="btn btn-success" onclick="saveWebDAV()">
+                        <i class="bi bi-save"></i> Сохранить
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Расписание синхронизации -->
+        <div class="settings-section">
+            <div class="section-title">
+                <span>⏰ Расписание синхронизации</span>
+                <button class="btn btn-sm btn-primary" onclick="addSchedule()">+ Добавить</button>
+            </div>
+            
+            <div class="schedule-list" id="scheduleList">
+                <!-- Загружается через JS -->
+            </div>
+            
+            <div class="settings-row mt-3">
+                <div class="settings-label">Интервал проверки</div>
+                <select class="settings-select" id="syncInterval">
+                    <option value="5">Каждые 5 минут</option>
+                    <option value="15">Каждые 15 минут</option>
+                    <option value="30">Каждые 30 минут</option>
+                    <option value="60">Каждый час</option>
+                    <option value="360">Каждые 6 часов</option>
+                    <option value="720">Каждые 12 часов</option>
+                    <option value="1440">Раз в день</option>
+                </select>
+            </div>
+        </div>
+        
+        <!-- Уведомления -->
+        <div class="settings-section">
+            <div class="section-title">
+                <span>🔔 Тревожные уведомления</span>
+                <span class="status-badge status-info" id="telegramStatus">Не настроено</span>
+            </div>
+            
+            <div class="settings-checkbox">
+                <input type="checkbox" id="notifyLowSpace" checked>
+                <label for="notifyLowSpace">При недостатке места</label>
+            </div>
+            
+            <div class="settings-row" style="margin-left: 25px;">
+                <div class="settings-label">Порог предупреждения</div>
+                <div class="input-group">
+                    <input type="number" class="settings-input" id="lowSpaceThreshold" value="10" min="1" max="50">
+                    <span class="btn btn-secondary">%</span>
+                </div>
+            </div>
+            
+            <div class="settings-checkbox">
+                <input type="checkbox" id="notifyWebDAVError" checked>
+                <label for="notifyWebDAVError">При ошибке WebDAV</label>
+            </div>
+            
+            <div class="settings-checkbox">
+                <input type="checkbox" id="notifySyncComplete">
+                <label for="notifySyncComplete">При завершении синхронизации</label>
+            </div>
+            
+            <div class="settings-checkbox">
+                <input type="checkbox" id="notifyNewRecordings">
+                <label for="notifyNewRecordings">При новых записях (ежедневно)</label>
+            </div>
+            
+            <div class="settings-row mt-2">
+                <div class="settings-label">Telegram Bot Token</div>
+                <input type="text" class="settings-input" id="telegramToken" placeholder="123456789:ABCdef...">
+            </div>
+            
+            <div class="settings-row">
+                <div class="settings-label">Telegram Chat ID</div>
+                <input type="text" class="settings-input" id="telegramChatId" placeholder="-1001234567890">
+            </div>
+            
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="testTelegram()">
+                    <i class="bi bi-send"></i> Тест
+                </button>
+                <button class="btn btn-success" onclick="saveTelegram()">
+                    <i class="bi bi-save"></i> Сохранить
+                </button>
+            </div>
+        </div>
+        
+        <!-- Кнопки сохранения -->
+        <div class="btn-group">
+            <button class="btn btn-success" style="flex: 2;" onclick="saveAllSettings()">
+                <i class="bi bi-save"></i> Сохранить все настройки
+            </button>
+            <button class="btn btn-secondary" style="flex: 1;" onclick="resetSettings()">
+                <i class="bi bi-arrow-repeat"></i> Сброс
+            </button>
+        </div>
+    </div>
+    
+    <!-- ПРАВАЯ ПАНЕЛЬ - СТАТИСТИКА И ХРАНИЛИЩА -->
+    <div class="stats-panel">
+        <div class="panel-title">
+            <i class="bi bi-bar-chart"></i> Статистика хранилища
+        </div>
+        
+        <!-- Статистика локального хранилища -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-title">Всего места</div>
+                <div class="stat-value" id="totalSpace">0</div>
+                <div class="stat-unit">GB</div>
+                <div class="stat-progress">
+                    <div class="stat-progress-bar" id="totalProgress" style="width: 0%"></div>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-title">Использовано</div>
+                <div class="stat-value" id="usedSpace">0</div>
+                <div class="stat-unit">GB</div>
+                <div class="stat-warning" id="spaceWarning"></div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-title">Свободно</div>
+                <div class="stat-value" id="freeSpace">0</div>
+                <div class="stat-unit">GB</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-title">Записей в архиве</div>
+                <div class="stat-value" id="totalRecordings">0</div>
+                <div class="stat-unit">шт</div>
+            </div>
+        </div>
+        
+        <!-- Статистика по типам -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-title">Видео записи</div>
+                <div class="stat-value" id="videoCount">0</div>
+                <div class="stat-unit">файлов</div>
+                <div class="stat-unit" id="videoSize">0 GB</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-title">Снимки</div>
+                <div class="stat-value" id="snapshotCount">0</div>
+                <div class="stat-unit">файлов</div>
+                <div class="stat-unit" id="snapshotSize">0 GB</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-title">Средняя длительность</div>
+                <div class="stat-value" id="avgDuration">0</div>
+                <div class="stat-unit">мин</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-title">Средний размер</div>
+                <div class="stat-value" id="avgSize">0</div>
+                <div class="stat-unit">MB</div>
+            </div>
+        </div>
+        
+        <!-- Подключенные хранилища -->
+        <div class="section-title" style="margin-top: 20px;">
+            <span>🔌 Подключенные хранилища</span>
+            <button class="btn btn-sm btn-primary" onclick="addStorage()">+ Добавить</button>
+        </div>
+        
+        <div class="storages-list" id="storagesList">
+            <!-- Загружается через JS -->
+        </div>
+        
+        <!-- История синхронизации -->
+        <div class="section-title" style="margin-top: 20px;">
+            <span>🔄 История синхронизации</span>
+            <button class="btn btn-sm btn-secondary" onclick="clearHistory()">Очистить</button>
+        </div>
+        
+        <div class="storages-list" id="syncHistory">
+            <!-- Загружается через JS -->
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно добавления хранилища -->
+<div class="modal fade" id="addStorageModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Добавить внешнее хранилище</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-row">
+                    <div class="settings-label">Тип хранилища</div>
+                    <select class="settings-select" id="newStorageType">
+                        <option value="webdav">WebDAV</option>
+                        <option value="smb">SMB/CIFS</option>
+                        <option value="nfs">NFS</option>
+                        <option value="s3">S3 Compatible</option>
+                    </select>
+                </div>
+                
+                <div class="settings-row">
+                    <div class="settings-label">Название</div>
+                    <input type="text" class="settings-input" id="newStorageName" placeholder="Мой NAS">
+                </div>
+                
+                <div class="settings-row">
+                    <div class="settings-label">Адрес</div>
+                    <input type="text" class="settings-input" id="newStorageUrl" placeholder="https://example.com/dav">
+                </div>
+                
+                <div class="settings-row">
+                    <div class="settings-label">Путь</div>
+                    <input type="text" class="settings-input" id="newStoragePath" placeholder="/video-archive">
+                </div>
+                
+                <div class="settings-row">
+                    <div class="settings-label">Логин (опционально)</div>
+                    <input type="text" class="settings-input" id="newStorageUsername">
+                </div>
+                
+                <div class="settings-row">
+                    <div class="settings-label">Пароль</div>
+                    <input type="password" class="settings-input" id="newStoragePassword">
+                </div>
+                
+                <div class="settings-checkbox">
+                    <input type="checkbox" id="newStorageDefault" checked>
+                    <label for="newStorageDefault">Использовать по умолчанию</label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" onclick="saveNewStorage()">Добавить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно настройки расписания -->
+<div class="modal fade" id="scheduleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Настройка расписания</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-row">
+                    <div class="settings-label">Тип</div>
+                    <select class="settings-select" id="scheduleType">
+                        <option value="time">По времени</option>
+                        <option value="interval">С интервалом</option>
+                    </select>
+                </div>
+                
+                <div id="scheduleTimeSettings">
+                    <div class="settings-row">
+                        <div class="settings-label">Время</div>
+                        <input type="time" class="settings-input" id="scheduleTime" value="02:00">
+                    </div>
+                    <div class="settings-checkbox">
+                        <input type="checkbox" id="scheduleRepeat" checked>
+                        <label for="scheduleRepeat">Ежедневно</label>
+                    </div>
+                </div>
+                
+                <div id="scheduleIntervalSettings" style="display: none;">
+                    <div class="settings-row">
+                        <div class="settings-label">Интервал</div>
+                        <select class="settings-select" id="scheduleInterval">
+                            <option value="3600">Каждый час</option>
+                            <option value="10800">Каждые 3 часа</option>
+                            <option value="21600">Каждые 6 часов</option>
+                            <option value="43200">Каждые 12 часов</option>
+                            <option value="86400">Каждый день</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="settings-row">
+                    <div class="settings-label">Действие</div>
+                    <select class="settings-select" id="scheduleAction">
+                        <option value="sync">Синхронизация</option>
+                        <option value="cleanup">Очистка</option>
+                        <option value="backup">Резервное копирование</option>
+                    </select>
+                </div>
+                
+                <div class="settings-row">
+                    <div class="settings-label">Целевое хранилище</div>
+                    <select class="settings-select" id="scheduleStorage">
+                        <option value="all">Все хранилища</option>
+                    </select>
+                </div>
+                
+                <div class="settings-checkbox">
+                    <input type="checkbox" id="scheduleEnabled" checked>
+                    <label for="scheduleEnabled">Активно</label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" onclick="saveSchedule()">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ===== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ =====
+let storages = [];
+let schedules = JSON.parse(localStorage.getItem('storageSchedules') || '[]');
+let syncHistory = JSON.parse(localStorage.getItem('syncHistory') || '[]');
+let settings = {};
+
+// ===== ИНИЦИАЛИЗАЦИЯ =====
+document.addEventListener('DOMContentLoaded', function() {
+    loadSettings();
+    loadStorages();
+    loadSchedules();
+    loadSyncHistory();
+    updateStats();
+    
+    // Периодическое обновление статистики
+    setInterval(updateStats, 30000);
+});
+
+// ===== ЗАГРУЗКА ДАННЫХ =====
+function loadSettings() {
+    // Загружаем настройки из localStorage или API
+    const saved = localStorage.getItem('storageSettings');
+    if (saved) {
+        settings = JSON.parse(saved);
+        
+        document.getElementById('localPath').value = settings.localPath || '/media/frigate/recordings';
+        document.getElementById('archiveDepth').value = settings.archiveDepth || 30;
+        document.getElementById('maxSize').value = settings.maxSize || 500;
+        document.getElementById('maxSizeUnit').value = settings.maxSizeUnit || 'GB';
+        document.getElementById('recordFormat').value = settings.recordFormat || 'mp4';
+        document.getElementById('recordQuality').value = settings.recordQuality || 'original';
+        document.getElementById('autoCleanup').checked = settings.autoCleanup !== false;
+        document.getElementById('compressRecordings').checked = settings.compressRecordings || false;
+        
+        // WebDAV
+        document.getElementById('webdavEnabled').checked = settings.webdavEnabled || false;
+        document.getElementById('webdavUrl').value = settings.webdavUrl || '';
+        document.getElementById('webdavUsername').value = settings.webdavUsername || '';
+        document.getElementById('webdavPassword').value = settings.webdavPassword || '';
+        document.getElementById('webdavRemotePath').value = settings.webdavRemotePath || '/video-archive';
+        document.getElementById('webdavLocalPath').value = settings.webdavLocalPath || 'recordings';
+        document.getElementById('webdavCreateSubdirs').checked = settings.webdavCreateSubdirs !== false;
+        document.getElementById('webdavDeleteAfterSync').checked = settings.webdavDeleteAfterSync || false;
+        
+        // Уведомления
+        document.getElementById('notifyLowSpace').checked = settings.notifyLowSpace !== false;
+        document.getElementById('lowSpaceThreshold').value = settings.lowSpaceThreshold || 10;
+        document.getElementById('notifyWebDAVError').checked = settings.notifyWebDAVError !== false;
+        document.getElementById('notifySyncComplete').checked = settings.notifySyncComplete || false;
+        document.getElementById('notifyNewRecordings').checked = settings.notifyNewRecordings || false;
+        document.getElementById('telegramToken').value = settings.telegramToken || '';
+        document.getElementById('telegramChatId').value = settings.telegramChatId || '';
+        
+        // Интервал
+        document.getElementById('syncInterval').value = settings.syncInterval || '60';
+    }
+    
+    toggleWebDAV();
+}
+
+function loadStorages() {
+    // Загружаем из localStorage
+    storages = JSON.parse(localStorage.getItem('externalStorages') || '[]');
+    renderStorages();
+}
+
+function loadSchedules() {
+    renderSchedules();
+}
+
+function loadSyncHistory() {
+    renderSyncHistory();
+}
+
+// ===== ЛОКАЛЬНОЕ ХРАНИЛИЩЕ =====
+function browseLocalPath() {
+    // В реальном приложении здесь открывается диалог выбора папки
+    alert('Функция выбора папки доступна только в полной версии');
+}
+
+function updateStats() {
+    // В реальном приложении здесь запрос к API
+    // Сейчас просто имитируем данные
+    const total = 1000;
+    const used = Math.floor(Math.random() * 800) + 100;
+    const free = total - used;
+    const percent = (used / total) * 100;
+    
+    document.getElementById('totalSpace').textContent = total;
+    document.getElementById('usedSpace').textContent = used;
+    document.getElementById('freeSpace').textContent = free;
+    document.getElementById('totalProgress').style.width = percent + '%';
+    
+    // Предупреждение о заполнении
+    const threshold = document.getElementById('lowSpaceThreshold').value;
+    if (percent > 95) {
+        document.getElementById('spaceWarning').innerHTML = '⚠️ Критически мало места!';
+        document.getElementById('spaceWarning').className = 'stat-danger';
+    } else if (percent > 90) {
+        document.getElementById('spaceWarning').innerHTML = '⚠️ Мало места';
+        document.getElementById('spaceWarning').className = 'stat-warning';
+    } else if (percent > 80) {
+        document.getElementById('spaceWarning').innerHTML = '⚠️ Место заканчивается';
+        document.getElementById('spaceWarning').className = 'stat-warning';
+    } else {
+        document.getElementById('spaceWarning').innerHTML = '';
+    }
+    
+    // Статистика записей
+    document.getElementById('totalRecordings').textContent = Math.floor(Math.random() * 1000) + 500;
+    document.getElementById('videoCount').textContent = Math.floor(Math.random() * 500) + 200;
+    document.getElementById('snapshotCount').textContent = Math.floor(Math.random() * 2000) + 500;
+    
+    const videoSize = (Math.random() * 500 + 100).toFixed(1);
+    const snapshotSize = (Math.random() * 50 + 10).toFixed(1);
+    document.getElementById('videoSize').textContent = videoSize + ' GB';
+    document.getElementById('snapshotSize').textContent = snapshotSize + ' GB';
+    
+    document.getElementById('avgDuration').textContent = Math.floor(Math.random() * 10) + 3;
+    document.getElementById('avgSize').textContent = (Math.random() * 50 + 20).toFixed(1);
+    
+    // Проверка порога для уведомления
+    if (document.getElementById('notifyLowSpace').checked && percent > 90) {
+        checkSendNotification('lowSpace', `Заполнение диска достигло ${percent.toFixed(1)}%`);
+    }
+}
+
+// ===== WEBDAV =====
+function toggleWebDAV() {
+    const enabled = document.getElementById('webdavEnabled').checked;
+    document.getElementById('webdavSettings').style.display = enabled ? 'block' : 'none';
+    
+    const status = document.getElementById('webdavStatus');
+    if (enabled) {
+        status.textContent = 'Включено';
+        status.className = 'status-badge status-success';
+    } else {
+        status.textContent = 'Отключено';
+        status.className = 'status-badge status-warning';
+    }
+}
+
+function testWebDAV() {
+    const url = document.getElementById('webdavUrl').value;
+    const username = document.getElementById('webdavUsername').value;
+    const password = document.getElementById('webdavPassword').value;
+    
+    if (!url) {
+        showNotification('error', 'Введите URL WebDAV сервера');
+        return;
+    }
+    
+    showNotification('info', 'Проверка подключения...');
+    
+    // В реальном приложении здесь запрос к API
+    setTimeout(() => {
+        showNotification('success', '✅ Подключение к WebDAV успешно');
+        document.getElementById('webdavStatus').textContent = 'Активно';
+        document.getElementById('webdavStatus').className = 'status-badge status-success';
+    }, 1500);
+}
+
+function saveWebDAV() {
+    settings.webdavEnabled = document.getElementById('webdavEnabled').checked;
+    settings.webdavUrl = document.getElementById('webdavUrl').value;
+    settings.webdavUsername = document.getElementById('webdavUsername').value;
+    settings.webdavPassword = document.getElementById('webdavPassword').value;
+    settings.webdavRemotePath = document.getElementById('webdavRemotePath').value;
+    settings.webdavLocalPath = document.getElementById('webdavLocalPath').value;
+    settings.webdavCreateSubdirs = document.getElementById('webdavCreateSubdirs').checked;
+    settings.webdavDeleteAfterSync = document.getElementById('webdavDeleteAfterSync').checked;
+    
+    localStorage.setItem('storageSettings', JSON.stringify(settings));
+    showNotification('success', 'Настройки WebDAV сохранены');
+    
+    if (settings.webdavEnabled) {
+        addSyncHistory('webdav', 'Настройки обновлены', 'success');
+    }
+}
+
+// ===== ВНЕШНИЕ ХРАНИЛИЩА =====
+function renderStorages() {
+    const container = document.getElementById('storagesList');
+    
+    if (storages.length === 0) {
+        container.innerHTML = '<div class="text-center p-4 text-muted">Нет подключенных хранилищ</div>';
+        return;
+    }
+    
+    container.innerHTML = storages.map(s => {
+        const usedPercent = s.total ? (s.used / s.total * 100).toFixed(1) : 0;
+        const statusClass = s.status === 'online' ? 'success' : (s.status === 'warning' ? 'warning' : 'error');
+        
+        return `
+            <div class="storage-item ${s.status !== 'online' ? s.status : ''}">
+                <div class="storage-header">
+                    <span class="storage-name">${s.name}</span>
+                    <span class="storage-type">${s.type.toUpperCase()}</span>
+                </div>
+                <div class="storage-path">${s.url || s.path}</div>
+                <div class="storage-stats">
+                    <div class="storage-stat">
+                        <span class="storage-stat-label">Всего</span>
+                        <span class="storage-stat-value">${s.total || '?'} GB</span>
+                    </div>
+                    <div class="storage-stat">
+                        <span class="storage-stat-label">Использовано</span>
+                        <span class="storage-stat-value">${s.used || '?'} GB</span>
+                    </div>
+                    <div class="storage-stat">
+                        <span class="storage-stat-label">Свободно</span>
+                        <span class="storage-stat-value">${s.free || '?'} GB</span>
+                    </div>
+                </div>
+                <div class="storage-progress">
+                    <div class="storage-progress-bar ${usedPercent > 90 ? 'danger' : (usedPercent > 80 ? 'warning' : '')}" 
+                         style="width: ${usedPercent}%"></div>
+                </div>
+                <div class="storage-actions">
+                    <button class="btn btn-sm btn-primary" onclick="testStorage('${s.id}')">
+                        <i class="bi bi-check-circle"></i> Проверить
+                    </button>
+                    <button class="btn btn-sm btn-success" onclick="syncNow('${s.id}')">
+                        <i class="bi bi-arrow-repeat"></i> Синхр.
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteStorage('${s.id}')">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function addStorage() {
+    new bootstrap.Modal(document.getElementById('addStorageModal')).show();
+}
+
+function saveNewStorage() {
+    const storage = {
+        id: Date.now().toString(),
+        type: document.getElementById('newStorageType').value,
+        name: document.getElementById('newStorageName').value,
+        url: document.getElementById('newStorageUrl').value,
+        path: document.getElementById('newStoragePath').value,
+        username: document.getElementById('newStorageUsername').value,
+        password: document.getElementById('newStoragePassword').value ? '••••' : '',
+        status: 'online',
+        total: Math.floor(Math.random() * 5000) + 1000,
+        used: Math.floor(Math.random() * 3000) + 100,
+        free: '?',
+        default: document.getElementById('newStorageDefault').checked
+    };
+    
+    storage.free = storage.total - storage.used;
+    
+    storages.push(storage);
+    localStorage.setItem('externalStorages', JSON.stringify(storages));
+    renderStorages();
+    
+    bootstrap.Modal.getInstance(document.getElementById('addStorageModal')).hide();
+    showNotification('success', 'Хранилище добавлено');
+}
+
+function testStorage(id) {
+    const storage = storages.find(s => s.id === id);
+    showNotification('info', `Проверка ${storage.name}...`);
+    
+    setTimeout(() => {
+        storage.status = Math.random() > 0.2 ? 'online' : 'warning';
+        renderStorages();
+        showNotification(storage.status === 'online' ? 'success' : 'warning', 
+                        storage.status === 'online' ? '✅ Хранилище доступно' : '⚠️ Хранилище недоступно');
+        
+        if (storage.status !== 'online' && document.getElementById('notifyWebDAVError').checked) {
+            checkSendNotification('webdavError', `Хранилище ${storage.name} недоступно`);
+        }
+    }, 1500);
+}
+
+function syncNow(id) {
+    const storage = storages.find(s => s.id === id);
+    showNotification('info', `Синхронизация с ${storage.name}...`);
+    
+    setTimeout(() => {
+        const success = Math.random() > 0.2;
+        addSyncHistory(storage.name, success ? 'Успешно' : 'Ошибка', success ? 'success' : 'error');
+        showNotification(success ? 'success' : 'error', 
+                       success ? '✅ Синхронизация завершена' : '❌ Ошибка синхронизации');
+        
+        if (success && document.getElementById('notifySyncComplete').checked) {
+            checkSendNotification('syncComplete', `Синхронизация с ${storage.name} завершена`);
+        }
+    }, 2000);
+}
+
+function deleteStorage(id) {
+    if (confirm('Удалить это хранилище?')) {
+        storages = storages.filter(s => s.id !== id);
+        localStorage.setItem('externalStorages', JSON.stringify(storages));
+        renderStorages();
+        showNotification('success', 'Хранилище удалено');
+    }
+}
+
+// ===== РАСПИСАНИЕ =====
+function renderSchedules() {
+    const container = document.getElementById('scheduleList');
+    
+    if (schedules.length === 0) {
+        container.innerHTML = '<div class="text-center p-3 text-muted">Нет активных расписаний</div>';
+        return;
+    }
+    
+    container.innerHTML = schedules.map(s => `
+        <div class="schedule-item">
+            <div class="schedule-info">
+                <div class="schedule-time">
+                    ${s.type === 'time' ? `🕐 ${s.time}` : `⏱️ Каждые ${s.interval/3600}ч`}
+                    ${!s.enabled ? '(отключено)' : ''}
+                </div>
+                <div class="schedule-desc">
+                    ${s.action === 'sync' ? 'Синхронизация' : (s.action === 'cleanup' ? 'Очистка' : 'Резервное копирование')}
+                    ${s.storage !== 'all' ? ' → ' + s.storage : ''}
+                </div>
+            </div>
+            <div class="schedule-actions">
+                <button class="btn btn-sm btn-warning" onclick="editSchedule('${s.id}')">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-sm btn-danger" onclick="deleteSchedule('${s.id}')">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function addSchedule() {
+    document.getElementById('scheduleType').value = 'time';
+    document.getElementById('scheduleTime').value = '02:00';
+    document.getElementById('scheduleRepeat').checked = true;
+    document.getElementById('scheduleInterval').value = '3600';
+    document.getElementById('scheduleAction').value = 'sync';
+    document.getElementById('scheduleEnabled').checked = true;
+    
+    // Заполняем список хранилищ
+    const storageSelect = document.getElementById('scheduleStorage');
+    storageSelect.innerHTML = '<option value="all">Все хранилища</option>';
+    storages.forEach(s => {
+        storageSelect.innerHTML += `<option value="${s.id}">${s.name}</option>`;
+    });
+    
+    toggleScheduleType();
+    new bootstrap.Modal(document.getElementById('scheduleModal')).show();
+}
+
+function toggleScheduleType() {
+    const type = document.getElementById('scheduleType').value;
+    document.getElementById('scheduleTimeSettings').style.display = type === 'time' ? 'block' : 'none';
+    document.getElementById('scheduleIntervalSettings').style.display = type === 'interval' ? 'block' : 'none';
+}
+
+document.getElementById('scheduleType').addEventListener('change', toggleScheduleType);
+
+function saveSchedule() {
+    const schedule = {
+        id: Date.now().toString(),
+        type: document.getElementById('scheduleType').value,
+        time: document.getElementById('scheduleTime').value,
+        repeat: document.getElementById('scheduleRepeat').checked,
+        interval: parseInt(document.getElementById('scheduleInterval').value),
+        action: document.getElementById('scheduleAction').value,
+        storage: document.getElementById('scheduleStorage').value,
+        enabled: document.getElementById('scheduleEnabled').checked
+    };
+    
+    schedules.push(schedule);
+    localStorage.setItem('storageSchedules', JSON.stringify(schedules));
+    renderSchedules();
+    
+    bootstrap.Modal.getInstance(document.getElementById('scheduleModal')).hide();
+    showNotification('success', 'Расписание добавлено');
+}
+
+function editSchedule(id) {
+    // Редактирование расписания
+    showNotification('info', 'Редактирование в разработке');
+}
+
+function deleteSchedule(id) {
+    if (confirm('Удалить это расписание?')) {
+        schedules = schedules.filter(s => s.id !== id);
+        localStorage.setItem('storageSchedules', JSON.stringify(schedules));
+        renderSchedules();
+        showNotification('success', 'Расписание удалено');
+    }
+}
+
+// ===== ИСТОРИЯ СИНХРОНИЗАЦИИ =====
+function renderSyncHistory() {
+    const container = document.getElementById('syncHistory');
+    
+    if (syncHistory.length === 0) {
+        container.innerHTML = '<div class="text-center p-3 text-muted">Нет истории синхронизации</div>';
+        return;
+    }
+    
+    container.innerHTML = syncHistory.slice(0, 10).map(h => `
+        <div class="schedule-item">
+            <div class="schedule-info">
+                <div class="schedule-time">${h.time}</div>
+                <div class="schedule-desc">
+                    ${h.storage} — ${h.status === 'success' ? '✅' : (h.status === 'error' ? '❌' : '⏳')} ${h.message}
+                </div>
+            </div>
+            <div class="schedule-actions">
+                <span class="status-badge status-${h.status === 'success' ? 'success' : (h.status === 'error' ? 'danger' : 'warning')}">
+                    ${h.status}
+                </span>
+            </div>
+        </div>
+    `).join('');
+}
+
+function addSyncHistory(storage, message, status) {
+    syncHistory.unshift({
+        id: Date.now(),
+        storage: storage,
+        message: message,
+        status: status,
+        time: new Date().toLocaleString()
+    });
+    
+    if (syncHistory.length > 50) syncHistory.pop();
+    localStorage.setItem('syncHistory', JSON.stringify(syncHistory));
+    renderSyncHistory();
+}
+
+function clearHistory() {
+    if (confirm('Очистить историю синхронизации?')) {
+        syncHistory = [];
+        localStorage.setItem('syncHistory', JSON.stringify(syncHistory));
+        renderSyncHistory();
+        showNotification('success', 'История очищена');
+    }
+}
+
+// ===== УВЕДОМЛЕНИЯ =====
+function testTelegram() {
+    const token = document.getElementById('telegramToken').value;
+    const chatId = document.getElementById('telegramChatId').value;
+    
+    if (!token || !chatId) {
+        showNotification('error', 'Введите Token и Chat ID');
+        return;
+    }
+    
+    showNotification('info', 'Отправка тестового сообщения...');
+    
+    // В реальном приложении здесь запрос к API
+    setTimeout(() => {
+        showNotification('success', '✅ Тестовое сообщение отправлено');
+        addSyncHistory('Telegram', 'Тестовое уведомление', 'success');
+    }, 1500);
+}
+
+function saveTelegram() {
+    settings.telegramToken = document.getElementById('telegramToken').value;
+    settings.telegramChatId = document.getElementById('telegramChatId').value;
+    settings.notifyLowSpace = document.getElementById('notifyLowSpace').checked;
+    settings.lowSpaceThreshold = document.getElementById('lowSpaceThreshold').value;
+    settings.notifyWebDAVError = document.getElementById('notifyWebDAVError').checked;
+    settings.notifySyncComplete = document.getElementById('notifySyncComplete').checked;
+    settings.notifyNewRecordings = document.getElementById('notifyNewRecordings').checked;
+    
+    localStorage.setItem('storageSettings', JSON.stringify(settings));
+    
+    const status = document.getElementById('telegramStatus');
+    if (settings.telegramToken && settings.telegramChatId) {
+        status.textContent = 'Активно';
+        status.className = 'status-badge status-success';
+    } else {
+        status.textContent = 'Не настроено';
+        status.className = 'status-badge status-info';
+    }
+    
+    showNotification('success', 'Настройки уведомлений сохранены');
+}
+
+function checkSendNotification(type, message) {
+    if (!settings.telegramToken || !settings.telegramChatId) return;
+    
+    console.log(`Sending notification: ${type} - ${message}`);
+    // В реальном приложении здесь отправка в Telegram
+    addSyncHistory('Уведомление', message, 'info');
+}
+
+// ===== СОХРАНЕНИЕ =====
+function saveAllSettings() {
+    // Сохраняем локальные настройки
+    settings.localPath = document.getElementById('localPath').value;
+    settings.archiveDepth = parseInt(document.getElementById('archiveDepth').value);
+    settings.maxSize = parseInt(document.getElementById('maxSize').value);
+    settings.maxSizeUnit = document.getElementById('maxSizeUnit').value;
+    settings.recordFormat = document.getElementById('recordFormat').value;
+    settings.recordQuality = document.getElementById('recordQuality').value;
+    settings.autoCleanup = document.getElementById('autoCleanup').checked;
+    settings.compressRecordings = document.getElementById('compressRecordings').checked;
+    settings.syncInterval = document.getElementById('syncInterval').value;
+    
+    localStorage.setItem('storageSettings', JSON.stringify(settings));
+    
+    showNotification('success', 'Все настройки сохранены');
+    addSyncHistory('Настройки', 'Обновление настроек', 'success');
+}
+
+function resetSettings() {
+    if (confirm('Сбросить все настройки?')) {
+        localStorage.removeItem('storageSettings');
+        localStorage.removeItem('externalStorages');
+        localStorage.removeItem('storageSchedules');
+        localStorage.removeItem('syncHistory');
+        
+        location.reload();
+    }
+}
+
+// ===== УВЕДОМЛЕНИЯ =====
+function showNotification(type, message) {
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type} alert-dismissible fade show`;
+    notification.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}

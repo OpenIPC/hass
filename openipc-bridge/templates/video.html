@@ -1,0 +1,1404 @@
+{% extends "base.html" %}
+{% block nav_video %}active{% endblock %}
+{% block title %}Live просмотр{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ===== ОСНОВНЫЕ СТИЛИ ===== */
+    .video-dashboard {
+        display: flex;
+        gap: 20px;
+        height: calc(100vh - 150px);
+        min-height: 700px;
+    }
+    
+    /* ===== ЛЕВАЯ ПАНЕЛЬ ===== */
+    .video-sidebar {
+        width: 320px;
+        background: #1a1a1a;
+        border-radius: 10px;
+        padding: 15px;
+        color: #fff;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .sidebar-section {
+        background: #2d2d2d;
+        border-radius: 8px;
+        padding: 15px;
+    }
+    
+    .sidebar-title {
+        font-size: 16px;
+        font-weight: bold;
+        margin-bottom: 15px;
+        color: #0d6efd;
+        border-bottom: 1px solid #444;
+        padding-bottom: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    /* ===== СПИСОК КАМЕР ===== */
+    .camera-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        max-height: 250px;
+        overflow-y: auto;
+    }
+    
+    .camera-item {
+        display: flex;
+        align-items: center;
+        padding: 8px 10px;
+        margin-bottom: 5px;
+        background: #333;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: all 0.2s;
+        border-left: 3px solid transparent;
+    }
+    
+    .camera-item:hover {
+        background: #404040;
+        transform: translateX(5px);
+    }
+    
+    .camera-item.selected {
+        border-left-color: #0d6efd;
+        background: #3d3d3d;
+    }
+    
+    .camera-status {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        margin-right: 8px;
+    }
+    
+    .status-online {
+        background: #28a745;
+        box-shadow: 0 0 5px #28a745;
+    }
+    
+    .status-offline {
+        background: #dc3545;
+    }
+    
+    .camera-name {
+        flex: 1;
+        font-size: 13px;
+    }
+    
+    .camera-type {
+        font-size: 9px;
+        padding: 2px 4px;
+        border-radius: 3px;
+        background: #444;
+        margin-left: 5px;
+    }
+    
+    /* ===== НАСТРОЙКИ FPS ===== */
+    .fps-control {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 15px 0;
+    }
+    
+    .fps-slider {
+        flex: 1;
+        height: 5px;
+        -webkit-appearance: none;
+        background: #444;
+        border-radius: 5px;
+        outline: none;
+    }
+    
+    .fps-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 18px;
+        height: 18px;
+        background: #0d6efd;
+        border-radius: 50%;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+    
+    .fps-slider::-webkit-slider-thumb:hover {
+        transform: scale(1.2);
+        background: #0b5ed7;
+    }
+    
+    .fps-value {
+        min-width: 60px;
+        text-align: center;
+        background: #333;
+        padding: 5px 10px;
+        border-radius: 5px;
+        font-size: 14px;
+        font-weight: bold;
+        color: #0d6efd;
+    }
+    
+    .fps-presets {
+        display: flex;
+        gap: 5px;
+        margin-top: 10px;
+    }
+    
+    .fps-preset-btn {
+        flex: 1;
+        background: #333;
+        border: 1px solid #444;
+        color: white;
+        padding: 5px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 11px;
+        transition: all 0.2s;
+    }
+    
+    .fps-preset-btn:hover {
+        background: #0d6efd;
+    }
+    
+    .fps-preset-btn.active {
+        background: #28a745;
+        border-color: #ffc107;
+    }
+    
+    /* ===== РАСКЛАДКИ ===== */
+    .layout-section {
+        margin-bottom: 15px;
+    }
+    
+    .layout-title {
+        font-size: 13px;
+        color: #aaa;
+        margin-bottom: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .layout-buttons {
+        display: flex;
+        gap: 5px;
+        flex-wrap: wrap;
+    }
+    
+    .layout-btn {
+        background: #333;
+        border: 1px solid #444;
+        color: white;
+        padding: 6px 10px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 11px;
+        min-width: 40px;
+        text-align: center;
+        transition: all 0.2s;
+    }
+    
+    .layout-btn:hover {
+        background: #404040;
+        border-color: #0d6efd;
+    }
+    
+    .layout-btn.active {
+        background: #0d6efd;
+        border-color: #ffc107;
+    }
+    
+    /* Специальные раскладки с выделенной областью */
+    .layout-special {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 5px;
+        margin-top: 10px;
+    }
+    
+    .layout-preview {
+        background: #333;
+        border-radius: 4px;
+        padding: 8px;
+        cursor: pointer;
+        border: 1px solid #444;
+        transition: all 0.2s;
+    }
+    
+    .layout-preview:hover {
+        border-color: #0d6efd;
+        background: #404040;
+    }
+    
+    .layout-preview.active {
+        border-color: #28a745;
+        background: #2d4d2d;
+    }
+    
+    .layout-preview-grid {
+        display: grid;
+        gap: 2px;
+        height: 60px;
+    }
+    
+    .preview-cell {
+        background: #666;
+        border-radius: 2px;
+    }
+    
+    .preview-cell.main {
+        background: #0d6efd;
+    }
+    
+    /* ===== СЕТКА ВИДЕО ===== */
+    .video-grid-container {
+        flex: 1;
+        background: #0a0a0a;
+        border-radius: 10px;
+        padding: 10px;
+        overflow: auto;
+        position: relative;
+    }
+    
+    .video-grid {
+        display: grid;
+        gap: 10px;
+        height: 100%;
+        transition: all 0.3s ease;
+    }
+    
+    .video-cell {
+        background: #1a1a1a;
+        border-radius: 8px;
+        overflow: hidden;
+        position: relative;
+        border: 2px solid #333;
+        cursor: pointer;
+        min-height: 150px;
+    }
+    
+    .video-cell:hover {
+        border-color: #0d6efd;
+        box-shadow: 0 0 20px rgba(13, 110, 253, 0.5);
+    }
+    
+    .video-cell.selected {
+        border-color: #ffc107;
+    }
+    
+    .video-cell.empty {
+        background: #2a2a2a;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #666;
+        font-size: 12px;
+        border: 2px dashed #444;
+    }
+    
+    .video-cell.expanded {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        right: 20px;
+        bottom: 20px;
+        z-index: 1000;
+        border: 3px solid #0d6efd;
+        box-shadow: 0 0 50px rgba(0,0,0,0.9);
+    }
+    
+    .video-cell video, 
+    .video-cell img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        background: #000;
+    }
+    
+    /* ===== ЛЕЙБЛ ВИДЕО ===== */
+    .video-label {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(transparent, rgba(0,0,0,0.8));
+        color: white;
+        padding: 5px 8px;
+        font-size: 11px;
+        display: flex;
+        justify-content: space-between;
+        z-index: 10;
+        pointer-events: none;
+    }
+    
+    .video-cell.expanded .video-label {
+        font-size: 16px;
+        padding: 15px;
+    }
+    
+    .fps-info {
+        position: absolute;
+        top: 5px;
+        left: 5px;
+        background: rgba(0,0,0,0.7);
+        color: #0ff;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-size: 10px;
+        z-index: 10;
+    }
+    
+    .audio-info {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        background: rgba(0,0,0,0.7);
+        color: #28a745;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-size: 10px;
+        z-index: 10;
+        display: none;
+    }
+    
+    .audio-info.active {
+        display: block;
+        animation: pulse 2s infinite;
+    }
+    
+    /* ===== КНОПКИ ЯЧЕЙКИ ===== */
+    .cell-controls {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        display: flex;
+        gap: 5px;
+        opacity: 0;
+        transition: opacity 0.2s;
+        z-index: 20;
+        pointer-events: auto;
+    }
+    
+    .video-cell:hover .cell-controls {
+        opacity: 1;
+    }
+    
+    .cell-btn {
+        background: rgba(0,0,0,0.7);
+        color: white;
+        border: none;
+        border-radius: 3px;
+        width: 28px;
+        height: 28px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+    
+    .cell-btn:hover {
+        background: #0d6efd;
+        transform: scale(1.1);
+    }
+    
+    .cell-btn.snapshot:hover {
+        background: #28a745;
+    }
+    
+    .cell-btn.audio:hover {
+        background: #ffc107;
+        color: #000;
+    }
+    
+    .cell-btn.remove:hover {
+        background: #dc3545;
+    }
+    
+    /* ===== КНОПКИ УПРАВЛЕНИЯ ===== */
+    .control-buttons {
+        display: flex;
+        gap: 8px;
+        margin-top: 10px;
+        flex-wrap: wrap;
+    }
+    
+    .control-btn {
+        flex: 1;
+        min-width: 80px;
+        background: #333;
+        border: 1px solid #444;
+        color: white;
+        padding: 8px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 11px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        transition: all 0.2s;
+    }
+    
+    .control-btn:hover {
+        background: #0d6efd;
+    }
+    
+    .control-btn.success:hover {
+        background: #28a745;
+    }
+    
+    .control-btn.warning:hover {
+        background: #ffc107;
+        color: #000;
+    }
+    
+    .control-btn.danger:hover {
+        background: #dc3545;
+    }
+    
+    /* ===== СТАТИСТИКА ===== */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        margin-top: 10px;
+    }
+    
+    .stat-item {
+        background: #333;
+        border-radius: 5px;
+        padding: 10px;
+        text-align: center;
+    }
+    
+    .stat-value {
+        font-size: 18px;
+        font-weight: bold;
+        color: #0d6efd;
+    }
+    
+    .stat-label {
+        font-size: 10px;
+        color: #aaa;
+        margin-top: 3px;
+    }
+    
+    /* ===== ПАНЕЛЬ РЕЗУЛЬТАТОВ ===== */
+    .test-results {
+        background: #1e1e1e;
+        border-radius: 5px;
+        padding: 8px;
+        margin-top: 10px;
+        font-size: 11px;
+        max-height: 150px;
+        overflow-y: auto;
+        border: 1px solid #333;
+        color: #0f0;
+    }
+    
+    .test-success { color: #28a745; }
+    .test-error { color: #dc3545; }
+    .test-info { color: #0d6efd; }
+    
+    /* ===== ИНДИКАТОР ЗАГРУЗКИ ===== */
+    .loading-spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(255,255,255,.3);
+        border-radius: 50%;
+        border-top-color: #fff;
+        animation: spin 1s ease-in-out infinite;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    
+    /* ===== ОВЕРЛЕЙ ===== */
+    .expand-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.8);
+        z-index: 999;
+        display: none;
+    }
+    
+    .expand-overlay.active {
+        display: block;
+    }
+    
+    /* ===== АДАПТИВНОСТЬ ===== */
+    @media (max-width: 1200px) {
+        .video-dashboard {
+            flex-direction: column;
+            height: auto;
+        }
+        
+        .video-sidebar {
+            width: 100%;
+            max-height: 300px;
+        }
+        
+        .video-cell.expanded {
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            bottom: 10px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="video-dashboard">
+    <!-- ЛЕВАЯ ПАНЕЛЬ -->
+    <div class="video-sidebar">
+        <!-- СПИСОК КАМЕР -->
+        <div class="sidebar-section">
+            <div class="sidebar-title">
+                <span><i class="bi bi-camera"></i> Камеры</span>
+                <span class="badge bg-primary" id="onlineCount">0</span>
+            </div>
+            <div class="camera-list" id="cameraList">
+                <div class="text-center p-3">
+                    <div class="loading-spinner"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- НАСТРОЙКИ FPS -->
+        <div class="sidebar-section">
+            <div class="sidebar-title">
+                <i class="bi bi-speedometer2"></i> Частота кадров
+            </div>
+            
+            <div class="fps-control">
+                <input type="range" class="fps-slider" id="fpsSlider" min="1" max="60" value="5" step="1">
+                <span class="fps-value" id="fpsDisplay">5 fps</span>
+            </div>
+            
+            <div class="fps-presets">
+                <button class="fps-preset-btn" onclick="setFPS(5)">5</button>
+                <button class="fps-preset-btn" onclick="setFPS(10)">10</button>
+                <button class="fps-preset-btn" onclick="setFPS(15)">15</button>
+                <button class="fps-preset-btn" onclick="setFPS(24)">24</button>
+                <button class="fps-preset-btn" onclick="setFPS(30)">30</button>
+                <button class="fps-preset-btn" onclick="setFPS(60)">60</button>
+            </div>
+            
+            <div class="text-muted small mt-2">
+                <i class="bi bi-info-circle"></i> Vivotek поддерживает 60 fps
+            </div>
+        </div>
+        
+        <!-- РАСКЛАДКИ -->
+        <div class="sidebar-section">
+            <div class="sidebar-title">
+                <i class="bi bi-grid"></i> Раскладка
+            </div>
+            
+            <!-- Стандартные сетки -->
+            <div class="layout-section">
+                <div class="layout-title">Стандартные</div>
+                <div class="layout-buttons">
+                    <button class="layout-btn" onclick="setLayout('1x1')">1x1</button>
+                    <button class="layout-btn" onclick="setLayout('2x2')">2x2</button>
+                    <button class="layout-btn active" onclick="setLayout('3x3')">3x3</button>
+                    <button class="layout-btn" onclick="setLayout('4x4')">4x4</button>
+                    <button class="layout-btn" onclick="setLayout('5x5')">5x5</button>
+                </div>
+            </div>
+            
+            <!-- С выделенной областью -->
+            <div class="layout-section">
+                <div class="layout-title">С выделенной областью</div>
+                <div class="layout-special">
+                    <div class="layout-preview" onclick="setLayout('1+3')">
+                        <div class="layout-preview-grid" style="grid-template-columns: 2fr 1fr 1fr; grid-template-rows: 1fr 1fr;">
+                            <div class="preview-cell main" style="grid-row: span 2;"></div>
+                            <div class="preview-cell"></div>
+                            <div class="preview-cell"></div>
+                            <div class="preview-cell"></div>
+                            <div class="preview-cell"></div>
+                        </div>
+                        <div class="text-center mt-1">1+3</div>
+                    </div>
+                    
+                    <div class="layout-preview" onclick="setLayout('1+5')">
+                        <div class="layout-preview-grid" style="grid-template-columns: 2fr 1fr 1fr; grid-template-rows: repeat(3, 1fr);">
+                            <div class="preview-cell main" style="grid-row: span 3;"></div>
+                            <div class="preview-cell"></div>
+                            <div class="preview-cell"></div>
+                            <div class="preview-cell"></div>
+                            <div class="preview-cell"></div>
+                            <div class="preview-cell"></div>
+                        </div>
+                        <div class="text-center mt-1">1+5</div>
+                    </div>
+                    
+                    <div class="layout-preview" onclick="setLayout('2+2')">
+                        <div class="layout-preview-grid" style="grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr;">
+                            <div class="preview-cell main"></div>
+                            <div class="preview-cell main"></div>
+                            <div class="preview-cell"></div>
+                            <div class="preview-cell"></div>
+                        </div>
+                        <div class="text-center mt-1">2+2</div>
+                    </div>
+                    
+                    <div class="layout-preview" onclick="setLayout('3+1')">
+                        <div class="layout-preview-grid" style="grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr;">
+                            <div class="preview-cell"></div>
+                            <div class="preview-cell"></div>
+                            <div class="preview-cell"></div>
+                            <div class="preview-cell main" style="grid-column: span 3;"></div>
+                        </div>
+                        <div class="text-center mt-1">3+1</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Сохраненные раскладки -->
+            <div class="layout-section">
+                <div class="layout-title">
+                    <span>Сохраненные</span>
+                    <button class="btn btn-sm btn-primary" onclick="saveCurrentLayout()">
+                        <i class="bi bi-save"></i>
+                    </button>
+                </div>
+                <div id="savedLayouts" class="saved-layouts"></div>
+            </div>
+        </div>
+        
+        <!-- УПРАВЛЕНИЕ -->
+        <div class="sidebar-section">
+            <div class="sidebar-title">
+                <i class="bi bi-gear"></i> Управление
+            </div>
+            
+            <div class="control-buttons">
+                <button class="control-btn" onclick="clearAllCells()">
+                    <i class="bi bi-eraser"></i> Очистить
+                </button>
+                <button class="control-btn" onclick="resetLayout()">
+                    <i class="bi bi-arrow-repeat"></i> Сброс
+                </button>
+            </div>
+            
+            <div class="control-buttons">
+                <button class="control-btn success" onclick="takeSnapshotSelected()">
+                    <i class="bi bi-camera"></i> Снимок
+                </button>
+                <button class="control-btn warning" onclick="toggleAudioSelected()">
+                    <i class="bi bi-volume-up"></i> Звук
+                </button>
+            </div>
+            
+            <div class="control-buttons">
+                <button class="control-btn" onclick="testSelectedCamera()">
+                    <i class="bi bi-camera"></i> Тест
+                </button>
+                <button class="control-btn" onclick="showStreamStats()">
+                    <i class="bi bi-bar-chart"></i> Статус
+                </button>
+            </div>
+        </div>
+        
+        <!-- СТАТИСТИКА -->
+        <div class="sidebar-section">
+            <div class="sidebar-title">
+                <i class="bi bi-info-circle"></i> Статистика
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-value" id="activeStreams">0</div>
+                    <div class="stat-label">Активных</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="totalCameras">0</div>
+                    <div class="stat-label">Всего</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="totalFps">5</div>
+                    <div class="stat-label">Ср. FPS</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="onlineCameras">0</div>
+                    <div class="stat-label">Online</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ДИАГНОСТИКА -->
+        <div class="sidebar-section">
+            <div class="sidebar-title">
+                <i class="bi bi-bug"></i> Диагностика
+            </div>
+            <div id="testResults" class="test-results">
+                [Ready] Выберите камеру...
+            </div>
+        </div>
+    </div>
+    
+    <!-- ПРАВАЯ ЧАСТЬ - СЕТКА ВИДЕО -->
+    <div class="video-grid-container">
+        <div class="video-grid" id="videoGrid">
+            <!-- Ячейки создаются через JS -->
+        </div>
+    </div>
+</div>
+
+<!-- Оверлей для развернутого режима -->
+<div class="expand-overlay" id="expandOverlay" onclick="collapseAll()"></div>
+
+<!-- Модальное окно отправки в Telegram -->
+<div class="modal fade" id="telegramModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark text-white">
+            <div class="modal-header">
+                <h5 class="modal-title">Отправить снимок в Telegram</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Подпись к снимку</label>
+                    <input type="text" class="form-control bg-dark text-white" id="snapshotCaption" value="📸 Снимок с камеры">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Chat ID (если не указан в конфиге)</label>
+                    <input type="text" class="form-control bg-dark text-white" id="telegramChatId" placeholder="Оставьте пустым для использования по умолчанию">
+                </div>
+                <div id="telegramPreview" class="text-center mb-3">
+                    <img id="previewImage" src="" style="max-width:100%; max-height:200px; display:none;">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" onclick="sendSnapshotToTelegram()">Отправить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ===== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ =====
+let cameras = [];
+let gridCells = [];
+let cameraAssignments = {};
+let activeIntervals = {};
+let audioStates = {};
+let expandedCell = null;
+let selectedCamera = null;
+let currentFPS = 5;
+let savedLayouts = JSON.parse(localStorage.getItem('savedLayouts') || '[]');
+let currentSnapshotBlob = null;
+let currentSnapshotCamera = null;
+
+// ===== ИНИЦИАЛИЗАЦИЯ =====
+document.addEventListener('DOMContentLoaded', function() {
+    loadCameras();
+    loadSavedLayouts();
+    
+    // Настройка слайдера FPS
+    const slider = document.getElementById('fpsSlider');
+    slider.addEventListener('input', function() {
+        const fps = this.value;
+        document.getElementById('fpsDisplay').textContent = fps + ' fps';
+        currentFPS = fps;
+        
+        // Обновляем активные потоки с новым FPS
+        restartAllStreams();
+    });
+    
+    setInterval(loadCameras, 30000);
+    setInterval(updateStats, 1000);
+    
+    // Загружаем последнюю раскладку
+    const lastLayout = localStorage.getItem('lastLayout') || '3x3';
+    setLayout(lastLayout);
+});
+
+// ===== РАБОТА С КАМЕРАМИ =====
+function loadCameras() {
+    fetch('/api/cameras/status')
+        .then(r => r.json())
+        .then(data => {
+            cameras = data.cameras || [];
+            renderCameraList();
+            updateStats();
+        })
+        .catch(e => console.error('Error loading cameras:', e));
+}
+
+function renderCameraList() {
+    const list = document.getElementById('cameraList');
+    const online = cameras.filter(c => c.online);
+    const offline = cameras.filter(c => !c.online);
+    
+    let html = '';
+    
+    if (online.length > 0) {
+        online.forEach(cam => {
+            const isSelected = selectedCamera === cam.ip ? 'selected' : '';
+            html += `
+                <div class="camera-item ${isSelected}" 
+                     onclick="selectCamera('${cam.ip}')"
+                     ondblclick="addCameraToGrid('${cam.ip}')"
+                     draggable="true" 
+                     ondragstart="dragStart(event, '${cam.ip}')">
+                    <span class="camera-status status-online"></span>
+                    <span class="camera-name">${cam.name}</span>
+                    <span class="camera-type">${cam.type}</span>
+                </div>
+            `;
+        });
+    }
+    
+    if (offline.length > 0) {
+        offline.forEach(cam => {
+            html += `
+                <div class="camera-item" style="opacity:0.5">
+                    <span class="camera-status status-offline"></span>
+                    <span class="camera-name">${cam.name}</span>
+                </div>
+            `;
+        });
+    }
+    
+    list.innerHTML = html || '<div class="text-center p-3">Нет камер</div>';
+}
+
+function selectCamera(ip) {
+    selectedCamera = ip;
+    document.querySelectorAll('.camera-item').forEach(item => item.classList.remove('selected'));
+    event.currentTarget.classList.add('selected');
+}
+
+function dragStart(event, cameraIp) {
+    event.dataTransfer.setData('text/plain', cameraIp);
+    event.target.classList.add('dragging');
+}
+
+// ===== УПРАВЛЕНИЕ FPS =====
+function setFPS(fps) {
+    document.getElementById('fpsSlider').value = fps;
+    document.getElementById('fpsDisplay').textContent = fps + ' fps';
+    currentFPS = fps;
+    
+    // Подсвечиваем активную кнопку
+    document.querySelectorAll('.fps-preset-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    // Обновляем потоки
+    restartAllStreams();
+}
+
+// ===== УПРАВЛЕНИЕ РАСКЛАДКОЙ =====
+function setLayout(layout) {
+    localStorage.setItem('lastLayout', layout);
+    
+    document.querySelectorAll('.layout-btn, .layout-preview').forEach(el => el.classList.remove('active'));
+    if (event) event.currentTarget.classList.add('active');
+    
+    const grid = document.getElementById('videoGrid');
+    const currentCameras = {...cameraAssignments};
+    
+    // Останавливаем все потоки
+    Object.values(activeIntervals).forEach(clearInterval);
+    activeIntervals = {};
+    cameraAssignments = {};
+    
+    // Применяем раскладку
+    switch(layout) {
+        case '1x1':
+            grid.style.gridTemplateColumns = '1fr';
+            grid.style.gridTemplateRows = '1fr';
+            createGridCells(1);
+            break;
+        case '2x2':
+            grid.style.gridTemplateColumns = 'repeat(2, 1fr)';
+            grid.style.gridTemplateRows = 'repeat(2, 1fr)';
+            createGridCells(4);
+            break;
+        case '3x3':
+            grid.style.gridTemplateColumns = 'repeat(3, 1fr)';
+            grid.style.gridTemplateRows = 'repeat(3, 1fr)';
+            createGridCells(9);
+            break;
+        case '4x4':
+            grid.style.gridTemplateColumns = 'repeat(4, 1fr)';
+            grid.style.gridTemplateRows = 'repeat(4, 1fr)';
+            createGridCells(16);
+            break;
+        case '5x5':
+            grid.style.gridTemplateColumns = 'repeat(5, 1fr)';
+            grid.style.gridTemplateRows = 'repeat(5, 1fr)';
+            createGridCells(25);
+            break;
+        case '1+3':
+            grid.style.gridTemplateColumns = '2fr 1fr 1fr';
+            grid.style.gridTemplateRows = '1fr 1fr';
+            createGridCells(4);
+            break;
+        case '1+5':
+            grid.style.gridTemplateColumns = '2fr 1fr 1fr';
+            grid.style.gridTemplateRows = 'repeat(3, 1fr)';
+            createGridCells(6);
+            break;
+        case '2+2':
+            grid.style.gridTemplateColumns = '1fr 1fr';
+            grid.style.gridTemplateRows = '1fr 1fr';
+            createGridCells(4);
+            break;
+        case '3+1':
+            grid.style.gridTemplateColumns = '1fr 1fr 1fr';
+            grid.style.gridTemplateRows = '1fr 1fr';
+            createGridCells(5);
+            break;
+    }
+    
+    // Восстанавливаем камеры в новые ячейки
+    setTimeout(() => {
+        let index = 0;
+        Object.values(currentCameras).forEach(ip => {
+            if (index < gridCells.length) {
+                assignCameraToCell(index, ip);
+                index++;
+            }
+        });
+    }, 100);
+}
+
+function createGridCells(count) {
+    const grid = document.getElementById('videoGrid');
+    grid.innerHTML = '';
+    gridCells = [];
+    
+    for (let i = 0; i < count; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'video-cell empty';
+        cell.dataset.index = i;
+        
+        cell.ondragover = e => e.preventDefault();
+        cell.ondrop = e => {
+            e.preventDefault();
+            const cameraIp = e.dataTransfer.getData('text/plain');
+            assignCameraToCell(i, cameraIp);
+        };
+        cell.onclick = () => selectCell(i);
+        cell.ondblclick = () => toggleExpand(i);
+        
+        grid.appendChild(cell);
+        gridCells.push(cell);
+    }
+}
+
+function selectCell(index) {
+    gridCells.forEach(cell => cell.classList.remove('selected'));
+    gridCells[index].classList.add('selected');
+}
+
+function assignCameraToCell(cellIndex, cameraIp) {
+    const camera = cameras.find(c => c.ip === cameraIp);
+    if (!camera || !camera.online) return;
+    
+    if (cameraAssignments[cellIndex]) {
+        removeCameraFromCell(cellIndex, false);
+    }
+    
+    cameraAssignments[cellIndex] = cameraIp;
+    
+    const cell = gridCells[cellIndex];
+    cell.className = 'video-cell';
+    cell.innerHTML = '';
+    
+    // Создаем изображение для MJPEG потока
+    const img = document.createElement('img');
+    img.style.width = '100%';
+    img.style.height = '100%';
+    img.style.objectFit = 'contain';
+    
+    // Функция обновления с учетом FPS
+    const updateImage = () => {
+        if (cameraAssignments[cellIndex] === cameraIp) {
+            img.src = `/api/camera/${cameraIp}/snapshot?_=${Date.now()}`;
+        }
+    };
+    
+    img.onerror = function() {
+        setTimeout(updateImage, 1000);
+    };
+    
+    updateImage();
+    const interval = setInterval(updateImage, 1000 / currentFPS);
+    activeIntervals[`cell_${cellIndex}`] = interval;
+    
+    cell.appendChild(img);
+    
+    // Кнопки управления
+    const controls = document.createElement('div');
+    controls.className = 'cell-controls';
+    controls.innerHTML = `
+        <button class="cell-btn snapshot" onclick="event.stopPropagation(); takeSnapshot('${cameraIp}')" title="Сделать снимок">
+            <i class="bi bi-camera"></i>
+        </button>
+        <button class="cell-btn audio" onclick="event.stopPropagation(); toggleAudio('${cameraIp}')" title="Включить/выключить звук">
+            <i class="bi ${audioStates[cameraIp] ? 'bi-volume-up' : 'bi-volume-mute'}"></i>
+        </button>
+        <button class="cell-btn" onclick="event.stopPropagation(); toggleExpand(${cellIndex})" title="Развернуть">
+            <i class="bi bi-arrows-fullscreen"></i>
+        </button>
+        <button class="cell-btn remove" onclick="event.stopPropagation(); removeCameraFromCell(${cellIndex}, true)" title="Удалить">
+            <i class="bi bi-x"></i>
+        </button>
+    `;
+    cell.appendChild(controls);
+    
+    // Информация о камере
+    const label = document.createElement('div');
+    label.className = 'video-label';
+    label.innerHTML = `
+        <span>${camera.name}</span>
+        <span>${camera.type}</span>
+    `;
+    cell.appendChild(label);
+    
+    // Информация о FPS
+    const fpsInfo = document.createElement('div');
+    fpsInfo.className = 'fps-info';
+    fpsInfo.innerHTML = currentFPS + ' fps';
+    cell.appendChild(fpsInfo);
+    
+    // Информация о звуке
+    const audioInfo = document.createElement('div');
+    audioInfo.className = `audio-info ${audioStates[cameraIp] ? 'active' : ''}`;
+    audioInfo.id = `audio_${cameraIp}`;
+    audioInfo.innerHTML = '<i class="bi bi-volume-up"></i>';
+    cell.appendChild(audioInfo);
+    
+    updateStats();
+}
+
+function removeCameraFromCell(cellIndex, updateStatsFlag = true) {
+    if (!cameraAssignments[cellIndex]) return;
+    
+    const interval = activeIntervals[`cell_${cellIndex}`];
+    if (interval) {
+        clearInterval(interval);
+        delete activeIntervals[`cell_${cellIndex}`];
+    }
+    
+    delete cameraAssignments[cellIndex];
+    
+    const cell = gridCells[cellIndex];
+    cell.className = 'video-cell empty';
+    cell.innerHTML = '';
+    
+    if (updateStatsFlag) updateStats();
+}
+
+function clearAllCells() {
+    Object.values(activeIntervals).forEach(clearInterval);
+    activeIntervals = {};
+    cameraAssignments = {};
+    
+    gridCells.forEach(cell => {
+        cell.className = 'video-cell empty';
+        cell.innerHTML = '';
+    });
+    
+    updateStats();
+    addResult('info', 'Все ячейки очищены');
+}
+
+function resetLayout() {
+    clearAllCells();
+    setLayout('3x3');
+}
+
+function addCameraToGrid(cameraIp) {
+    const emptyIndex = gridCells.findIndex((cell, idx) => !cameraAssignments[idx]);
+    if (emptyIndex === -1) {
+        addResult('warning', 'Нет свободных ячеек');
+        return;
+    }
+    assignCameraToCell(emptyIndex, cameraIp);
+}
+
+function restartAllStreams() {
+    const assignments = {...cameraAssignments};
+    clearAllCells();
+    setTimeout(() => {
+        Object.entries(assignments).forEach(([index, ip]) => {
+            assignCameraToCell(parseInt(index), ip);
+        });
+    }, 500);
+}
+
+// ===== РАЗВОРАЧИВАНИЕ =====
+function toggleExpand(cellIndex) {
+    const cell = gridCells[cellIndex];
+    const overlay = document.getElementById('expandOverlay');
+    
+    if (expandedCell === cellIndex) {
+        cell.classList.remove('expanded');
+        overlay.classList.remove('active');
+        expandedCell = null;
+    } else {
+        if (expandedCell !== null) {
+            gridCells[expandedCell].classList.remove('expanded');
+        }
+        cell.classList.add('expanded');
+        overlay.classList.add('active');
+        expandedCell = cellIndex;
+    }
+}
+
+function collapseAll() {
+    if (expandedCell !== null) {
+        gridCells[expandedCell].classList.remove('expanded');
+        document.getElementById('expandOverlay').classList.remove('active');
+        expandedCell = null;
+    }
+}
+
+// ===== СНИМКИ =====
+function takeSnapshot(cameraIp) {
+    const camera = cameras.find(c => c.ip === cameraIp);
+    if (!camera) return;
+    
+    addResult('info', `📸 Делаю снимок с ${camera.name}...`);
+    
+    fetch(`/api/camera/${cameraIp}/snapshot`)
+        .then(r => r.blob())
+        .then(blob => {
+            currentSnapshotBlob = blob;
+            currentSnapshotCamera = cameraIp;
+            
+            // Создаем URL для предпросмотра
+            const url = URL.createObjectURL(blob);
+            document.getElementById('previewImage').src = url;
+            document.getElementById('previewImage').style.display = 'block';
+            
+            // Показываем модальное окно
+            new bootstrap.Modal(document.getElementById('telegramModal')).show();
+            
+            addResult('success', `✅ Снимок готов (${(blob.size/1024).toFixed(1)} KB)`);
+        })
+        .catch(e => {
+            addResult('error', `❌ Ошибка: ${e.message}`);
+        });
+}
+
+function takeSnapshotSelected() {
+    if (!selectedCamera) {
+        addResult('error', 'Сначала выберите камеру');
+        return;
+    }
+    takeSnapshot(selectedCamera);
+}
+
+function sendSnapshotToTelegram() {
+    if (!currentSnapshotBlob) return;
+    
+    const caption = document.getElementById('snapshotCaption').value;
+    const chatId = document.getElementById('telegramChatId').value;
+    
+    addResult('info', '📤 Отправка в Telegram...');
+    
+    const reader = new FileReader();
+    reader.onloadend = function() {
+        const base64data = reader.result.split(',')[1];
+        
+        fetch('/api/send_telegram_photo', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                photo: base64data,
+                caption: caption,
+                chat_id: chatId || undefined
+            })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                addResult('success', '✅ Снимок отправлен в Telegram');
+                bootstrap.Modal.getInstance(document.getElementById('telegramModal')).hide();
+            } else {
+                addResult('error', `❌ Ошибка: ${data.error}`);
+            }
+        });
+    };
+    reader.readAsDataURL(currentSnapshotBlob);
+}
+
+// ===== ЗВУК =====
+function toggleAudio(cameraIp) {
+    audioStates[cameraIp] = !audioStates[cameraIp];
+    
+    // Обновляем иконку кнопки
+    const audioInfo = document.getElementById(`audio_${cameraIp}`);
+    if (audioInfo) {
+        if (audioStates[cameraIp]) {
+            audioInfo.classList.add('active');
+        } else {
+            audioInfo.classList.remove('active');
+        }
+    }
+    
+    // Обновляем иконки во всех ячейках с этой камерой
+    document.querySelectorAll(`.cell-btn.audio i`).forEach(icon => {
+        if (icon.closest('.video-cell')) {
+            const cellIndex = icon.closest('.video-cell').dataset.index;
+            if (cameraAssignments[cellIndex] === cameraIp) {
+                icon.className = `bi ${audioStates[cameraIp] ? 'bi-volume-up' : 'bi-volume-mute'}`;
+            }
+        }
+    });
+    
+    addResult('info', `Звук ${audioStates[cameraIp] ? 'включен' : 'выключен'}`);
+}
+
+function toggleAudioSelected() {
+    if (!selectedCamera) {
+        addResult('error', 'Сначала выберите камеру');
+        return;
+    }
+    toggleAudio(selectedCamera);
+}
+
+// ===== СОХРАНЕНИЕ РАСКЛАДОК =====
+function saveCurrentLayout() {
+    const name = prompt('Введите название раскладки:');
+    if (!name) return;
+    
+    const layout = {
+        id: Date.now(),
+        name: name,
+        date: new Date().toLocaleString(),
+        assignments: {...cameraAssignments},
+        gridSize: gridCells.length
+    };
+    
+    savedLayouts.push(layout);
+    localStorage.setItem('savedLayouts', JSON.stringify(savedLayouts));
+    loadSavedLayouts();
+    addResult('success', `Раскладка "${name}" сохранена`);
+}
+
+function loadSavedLayouts() {
+    const container = document.getElementById('savedLayouts');
+    if (savedLayouts.length === 0) {
+        container.innerHTML = '<div class="text-muted text-center p-2">Нет сохраненных раскладок</div>';
+        return;
+    }
+    
+    container.innerHTML = savedLayouts.map(layout => `
+        <div class="saved-layout-item" onclick="loadSavedLayout(${layout.id})">
+            <span>${layout.name}</span>
+            <span class="text-muted small">${layout.date}</span>
+        </div>
+    `).join('');
+}
+
+function loadSavedLayout(layoutId) {
+    const layout = savedLayouts.find(l => l.id === layoutId);
+    if (!layout) return;
+    
+    if (layout.gridSize === 1) setLayout('1x1');
+    else if (layout.gridSize === 4) setLayout('2x2');
+    else if (layout.gridSize === 9) setLayout('3x3');
+    else if (layout.gridSize === 16) setLayout('4x4');
+    else if (layout.gridSize === 25) setLayout('5x5');
+    
+    setTimeout(() => {
+        Object.entries(layout.assignments).forEach(([index, ip]) => {
+            assignCameraToCell(parseInt(index), ip);
+        });
+    }, 200);
+    
+    addResult('success', `Загружена раскладка "${layout.name}"`);
+}
+
+// ===== СТАТИСТИКА =====
+function updateStats() {
+    const activeCount = Object.keys(cameraAssignments).length;
+    const onlineCount = cameras.filter(c => c.online).length;
+    
+    document.getElementById('activeStreams').textContent = activeCount;
+    document.getElementById('totalCameras').textContent = cameras.length;
+    document.getElementById('onlineCameras').textContent = onlineCount;
+    document.getElementById('onlineCount').textContent = onlineCount;
+    document.getElementById('totalFps').textContent = currentFPS;
+}
+
+// ===== ДИАГНОСТИКА =====
+function addResult(type, message) {
+    const results = document.getElementById('testResults');
+    const time = new Date().toLocaleTimeString();
+    const className = type === 'success' ? 'test-success' : (type === 'error' ? 'test-error' : 'test-info');
+    
+    results.innerHTML += `<div class="${className}">[${time}] ${message}</div>`;
+    results.scrollTop = results.scrollHeight;
+    
+    if (results.children.length > 20) {
+        results.removeChild(results.firstChild);
+    }
+}
+
+function testSelectedCamera() {
+    if (!selectedCamera) {
+        addResult('error', 'Сначала выберите камеру');
+        return;
+    }
+    
+    fetch(`/api/camera/${selectedCamera}/snapshot`)
+        .then(r => {
+            if (r.ok) {
+                return r.blob().then(blob => {
+                    addResult('success', `✅ OK (${(blob.size/1024).toFixed(1)} KB)`);
+                });
+            } else {
+                addResult('error', `❌ HTTP ${r.status}`);
+            }
+        })
+        .catch(e => {
+            addResult('error', `❌ ${e.message}`);
+        });
+}
+
+function showStreamStats() {
+    const activeCount = Object.keys(cameraAssignments).length;
+    addResult('info', `📊 Статистика:`);
+    addResult('info', `   Активных потоков: ${activeCount}`);
+    addResult('info', `   Текущий FPS: ${currentFPS}`);
+    
+    Object.entries(cameraAssignments).forEach(([index, ip]) => {
+        const camera = cameras.find(c => c.ip === ip);
+        if (camera) {
+            addResult('info', `   Ячейка ${parseInt(index)+1}: ${camera.name} (${camera.type})`);
+        }
+    });
+}
+
+// Очистка при уходе
+window.addEventListener('beforeunload', function() {
+    Object.values(activeIntervals).forEach(clearInterval);
+});
+</script>
+{% endblock %}

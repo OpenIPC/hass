@@ -1,0 +1,1185 @@
+{% extends "base.html" %}
+{% block nav_snapshots %}active{% endblock %}
+{% block title %}Снимки по триггерам{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ===== ОСНОВНЫЕ СТИЛИ ===== */
+    .snapshots-container {
+        display: flex;
+        gap: 20px;
+        height: calc(100vh - 150px);
+        min-height: 700px;
+    }
+    
+    /* ===== ЛЕВАЯ ПАНЕЛЬ - ФИЛЬТРЫ ===== */
+    .filters-panel {
+        width: 300px;
+        background: #1a1a1a;
+        border-radius: 10px;
+        padding: 15px;
+        color: #fff;
+        overflow-y: auto;
+    }
+    
+    .panel-title {
+        font-size: 18px;
+        font-weight: bold;
+        color: #0d6efd;
+        margin-bottom: 15px;
+        border-bottom: 1px solid #444;
+        padding-bottom: 8px;
+    }
+    
+    .filter-section {
+        background: #2d2d2d;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .filter-title {
+        font-size: 14px;
+        font-weight: bold;
+        color: #0d6efd;
+        margin-bottom: 12px;
+        border-bottom: 1px solid #444;
+        padding-bottom: 5px;
+    }
+    
+    .filter-row {
+        margin-bottom: 12px;
+    }
+    
+    .filter-label {
+        font-size: 12px;
+        color: #aaa;
+        margin-bottom: 4px;
+    }
+    
+    .filter-select {
+        width: 100%;
+        background: #333;
+        border: 1px solid #444;
+        color: white;
+        padding: 8px 10px;
+        border-radius: 5px;
+        font-size: 12px;
+    }
+    
+    .filter-input {
+        width: 100%;
+        background: #333;
+        border: 1px solid #444;
+        color: white;
+        padding: 8px 10px;
+        border-radius: 5px;
+        font-size: 12px;
+    }
+    
+    .filter-date-time {
+        display: flex;
+        gap: 5px;
+        align-items: center;
+    }
+    
+    .filter-date-time .filter-input {
+        flex: 1;
+    }
+    
+    .filter-checkbox {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+        font-size: 12px;
+    }
+    
+    .filter-checkbox input {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+    }
+    
+    .filter-badge {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 12px;
+        font-size: 10px;
+        margin-right: 5px;
+        margin-bottom: 5px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .filter-badge:hover {
+        transform: scale(1.05);
+    }
+    
+    .filter-badge.active {
+        outline: 2px solid #fff;
+        outline-offset: 2px;
+    }
+    
+    .badge-manual {
+        background: #6f42c1;
+        color: white;
+    }
+    
+    .badge-motion {
+        background: #ffc107;
+        color: #000;
+    }
+    
+    .badge-qr {
+        background: #0d6efd;
+        color: white;
+    }
+    
+    .badge-alert {
+        background: #dc3545;
+        color: white;
+    }
+    
+    .badge-archive {
+        background: #28a745;
+        color: white;
+    }
+    
+    .filter-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+    }
+    
+    .filter-btn {
+        flex: 1;
+        background: #333;
+        border: 1px solid #444;
+        color: white;
+        padding: 8px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 12px;
+        text-align: center;
+        transition: all 0.2s;
+    }
+    
+    .filter-btn:hover {
+        background: #0d6efd;
+    }
+    
+    .filter-btn.reset:hover {
+        background: #dc3545;
+    }
+    
+    /* ===== ПРАВАЯ ПАНЕЛЬ - СЕТКА СНИМКОВ ===== */
+    .snapshots-panel {
+        flex: 1;
+        background: #1a1a1a;
+        border-radius: 10px;
+        padding: 20px;
+        color: #fff;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    
+    .stats-bar {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 20px;
+        padding: 15px;
+        background: #2d2d2d;
+        border-radius: 8px;
+    }
+    
+    .stat-item {
+        flex: 1;
+        text-align: center;
+    }
+    
+    .stat-value {
+        font-size: 20px;
+        font-weight: bold;
+        color: #0d6efd;
+    }
+    
+    .stat-label {
+        font-size: 11px;
+        color: #aaa;
+    }
+    
+    .snapshots-grid {
+        flex: 1;
+        overflow-y: auto;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 15px;
+        padding: 5px;
+    }
+    
+    .snapshot-card {
+        background: #2d2d2d;
+        border-radius: 8px;
+        overflow: hidden;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: 1px solid #444;
+        position: relative;
+    }
+    
+    .snapshot-card:hover {
+        transform: translateY(-5px);
+        border-color: #0d6efd;
+        box-shadow: 0 5px 20px rgba(13, 110, 253, 0.3);
+    }
+    
+    .snapshot-card.selected {
+        border: 3px solid #ffc107;
+        transform: scale(1.02);
+    }
+    
+    .snapshot-image {
+        width: 100%;
+        height: 150px;
+        object-fit: cover;
+        background: #333;
+        display: block;
+    }
+    
+    .snapshot-info {
+        padding: 10px;
+    }
+    
+    .snapshot-camera {
+        font-weight: bold;
+        color: #0d6efd;
+        font-size: 12px;
+        margin-bottom: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .snapshot-time {
+        font-size: 10px;
+        color: #aaa;
+        margin-bottom: 6px;
+    }
+    
+    .snapshot-tags {
+        display: flex;
+        gap: 4px;
+        flex-wrap: wrap;
+    }
+    
+    .snapshot-tag {
+        font-size: 8px;
+        padding: 2px 6px;
+        border-radius: 10px;
+        background: #444;
+    }
+    
+    .snapshot-tag.manual {
+        background: #6f42c1;
+        color: white;
+    }
+    
+    .snapshot-tag.motion {
+        background: #ffc107;
+        color: #000;
+    }
+    
+    .snapshot-tag.qr {
+        background: #0d6efd;
+        color: white;
+    }
+    
+    .snapshot-tag.alert {
+        background: #dc3545;
+        color: white;
+    }
+    
+    .snapshot-tag.archive {
+        background: #28a745;
+        color: white;
+    }
+    
+    .snapshot-size {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        background: rgba(0,0,0,0.7);
+        color: #fff;
+        padding: 2px 5px;
+        border-radius: 3px;
+        font-size: 8px;
+        z-index: 5;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #666;
+        grid-column: 1 / -1;
+    }
+    
+    .empty-state i {
+        font-size: 64px;
+        margin-bottom: 20px;
+    }
+    
+    .loading-spinner {
+        display: inline-block;
+        width: 30px;
+        height: 30px;
+        border: 3px solid rgba(255,255,255,.3);
+        border-radius: 50%;
+        border-top-color: #0d6efd;
+        animation: spin 1s ease-in-out infinite;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    
+    /* ===== МОДАЛЬНОЕ ОКНО ПРОСМОТРА ===== */
+    .modal-content {
+        background: #2d2d2d;
+        color: white;
+    }
+    
+    .modal-header {
+        border-bottom: 1px solid #444;
+    }
+    
+    .modal-footer {
+        border-top: 1px solid #444;
+    }
+    
+    .modal .form-control,
+    .modal .form-select {
+        background: #333;
+        border: 1px solid #444;
+        color: white;
+    }
+    
+    .modal .form-control:focus,
+    .modal .form-select:focus {
+        border-color: #0d6efd;
+        box-shadow: none;
+    }
+    
+    .snapshot-full-image {
+        max-width: 100%;
+        max-height: 60vh;
+        border-radius: 5px;
+        margin-bottom: 15px;
+    }
+    
+    .snapshot-details {
+        background: #333;
+        border-radius: 5px;
+        padding: 10px;
+        margin-bottom: 15px;
+        font-size: 12px;
+    }
+    
+    .detail-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 5px;
+        padding: 3px 0;
+        border-bottom: 1px solid #444;
+    }
+    
+    .detail-label {
+        color: #aaa;
+    }
+    
+    .detail-value {
+        color: #0d6efd;
+        font-weight: bold;
+    }
+    
+    .snapshot-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin-top: 15px;
+    }
+    
+    .action-btn {
+        flex: 1;
+        padding: 8px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        transition: all 0.2s;
+    }
+    
+    .action-btn.download {
+        background: #28a745;
+        color: white;
+    }
+    
+    .action-btn.download:hover {
+        background: #218838;
+    }
+    
+    .action-btn.telegram {
+        background: #0088cc;
+        color: white;
+    }
+    
+    .action-btn.telegram:hover {
+        background: #006699;
+    }
+    
+    .action-btn.delete {
+        background: #dc3545;
+        color: white;
+    }
+    
+    .action-btn.delete:hover {
+        background: #bb2d3b;
+    }
+    
+    /* ===== КОНТЕКСТНОЕ МЕНЮ ===== */
+    .context-menu {
+        position: fixed;
+        background: #2d2d2d;
+        border: 1px solid #444;
+        border-radius: 5px;
+        padding: 5px 0;
+        min-width: 150px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+        z-index: 1000;
+        display: none;
+    }
+    
+    .context-menu-item {
+        padding: 8px 15px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 12px;
+    }
+    
+    .context-menu-item:hover {
+        background: #0d6efd;
+    }
+    
+    .context-menu-item.delete:hover {
+        background: #dc3545;
+    }
+    
+    /* ===== УВЕДОМЛЕНИЯ ===== */
+    .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        min-width: 300px;
+        background: #28a745;
+        color: white;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+        z-index: 9999;
+        animation: slideIn 0.3s;
+    }
+    
+    .notification.error {
+        background: #dc3545;
+    }
+    
+    .notification.warning {
+        background: #ffc107;
+        color: #000;
+    }
+    
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    /* ===== АДАПТИВНОСТЬ ===== */
+    @media (max-width: 1200px) {
+        .snapshots-container {
+            flex-direction: column;
+            height: auto;
+        }
+        
+        .filters-panel {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="snapshots-container">
+    <!-- ЛЕВАЯ ПАНЕЛЬ - ФИЛЬТРЫ -->
+    <div class="filters-panel">
+        <div class="panel-title">
+            <i class="bi bi-funnel"></i> Фильтры
+        </div>
+        
+        <div class="filter-section">
+            <div class="filter-title">📅 Дата и время</div>
+            
+            <div class="filter-row">
+                <div class="filter-label">Начало</div>
+                <div class="filter-date-time">
+                    <input type="date" class="filter-input" id="filterDateStart">
+                    <input type="time" class="filter-input" id="filterTimeStart" value="00:00">
+                </div>
+            </div>
+            
+            <div class="filter-row">
+                <div class="filter-label">Конец</div>
+                <div class="filter-date-time">
+                    <input type="date" class="filter-input" id="filterDateEnd">
+                    <input type="time" class="filter-input" id="filterTimeEnd" value="23:59">
+                </div>
+            </div>
+            
+            <div class="filter-row">
+                <button class="filter-btn" style="flex: 1;" onclick="setToday()">Сегодня</button>
+                <button class="filter-btn" style="flex: 1;" onclick="setYesterday()">Вчера</button>
+                <button class="filter-btn" style="flex: 1;" onclick="setThisWeek()">Неделя</button>
+            </div>
+        </div>
+        
+        <div class="filter-section">
+            <div class="filter-title">🎥 Камера</div>
+            
+            <div class="filter-row">
+                <select class="filter-select" id="filterCamera">
+                    <option value="all">Все камеры</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="filter-section">
+            <div class="filter-title">🏷️ Тип снимка</div>
+            
+            <div class="filter-row">
+                <span class="filter-badge badge-manual" onclick="toggleTypeFilter('manual')">📸 Ручной</span>
+                <span class="filter-badge badge-motion" onclick="toggleTypeFilter('motion')">🚶 Движение</span>
+                <span class="filter-badge badge-qr" onclick="toggleTypeFilter('qr')">📱 QR</span>
+            </div>
+            <div class="filter-row">
+                <span class="filter-badge badge-alert" onclick="toggleTypeFilter('alert')">⚠️ Тревога</span>
+                <span class="filter-badge badge-archive" onclick="toggleTypeFilter('archive')">📁 Архив</span>
+            </div>
+        </div>
+        
+        <div class="filter-section">
+            <div class="filter-title">⚙️ Дополнительно</div>
+            
+            <div class="filter-row">
+                <div class="filter-label">Минимальный размер</div>
+                <input type="number" class="filter-input" id="minSize" placeholder="KB" min="0" step="10">
+            </div>
+            
+            <div class="filter-row">
+                <div class="filter-label">Сортировка</div>
+                <select class="filter-select" id="filterSort">
+                    <option value="newest">Сначала новые</option>
+                    <option value="oldest">Сначала старые</option>
+                    <option value="size_desc">По размеру (большие)</option>
+                    <option value="size_asc">По размеру (маленькие)</option>
+                    <option value="camera">По камере</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="filter-actions">
+            <button class="filter-btn" onclick="applyFilters()">
+                <i class="bi bi-search"></i> Применить
+            </button>
+            <button class="filter-btn reset" onclick="resetFilters()">
+                <i class="bi bi-arrow-repeat"></i> Сброс
+            </button>
+        </div>
+        
+        <div class="filter-section" style="margin-top: 10px;">
+            <div class="filter-title">
+                <span><i class="bi bi-arrow-repeat"></i> Управление</span>
+            </div>
+            <button class="filter-btn" style="width: 100%; margin-bottom: 5px;" onclick="refreshSnapshots()">
+                <i class="bi bi-arrow-repeat"></i> Обновить список
+            </button>
+        </div>
+    </div>
+    
+    <!-- ПРАВАЯ ПАНЕЛЬ - СЕТКА СНИМКОВ -->
+    <div class="snapshots-panel">
+        <div class="panel-title">
+            <span><i class="bi bi-camera"></i> Снимки</span>
+            <span class="badge bg-primary" id="snapshotsCount">0</span>
+        </div>
+        
+        <div class="stats-bar">
+            <div class="stat-item">
+                <div class="stat-value" id="totalSize">0 MB</div>
+                <div class="stat-label">Общий размер</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="totalCount">0</div>
+                <div class="stat-label">Всего снимков</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="todayCount">0</div>
+                <div class="stat-label">За сегодня</div>
+            </div>
+        </div>
+        
+        <div class="snapshots-grid" id="snapshotsGrid">
+            <!-- Загружается через JS -->
+            <div class="empty-state">
+                <div class="loading-spinner"></div>
+                <p class="mt-2">Загрузка снимков...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Контекстное меню -->
+<div class="context-menu" id="contextMenu">
+    <div class="context-menu-item" onclick="downloadCurrentSnapshot()">
+        <i class="bi bi-download"></i> Скачать
+    </div>
+    <div class="context-menu-item" onclick="showTelegramModal()">
+        <i class="bi bi-telegram"></i> Отправить в Telegram
+    </div>
+    <div class="context-menu-item delete" onclick="deleteCurrentSnapshot()">
+        <i class="bi bi-trash"></i> Удалить
+    </div>
+</div>
+
+<!-- Модальное окно просмотра снимка -->
+<div class="modal fade" id="snapshotModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="snapshotModalTitle">Просмотр снимка</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="snapshotFullImage" class="snapshot-full-image" src="" alt="Snapshot">
+                
+                <div class="snapshot-details" id="snapshotDetails">
+                    <!-- Загружается через JS -->
+                </div>
+                
+                <div class="snapshot-actions">
+                    <button class="action-btn download" onclick="downloadCurrentSnapshot()">
+                        <i class="bi bi-download"></i> Скачать
+                    </button>
+                    <button class="action-btn telegram" onclick="showTelegramModal()">
+                        <i class="bi bi-telegram"></i> Telegram
+                    </button>
+                    <button class="action-btn delete" onclick="deleteCurrentSnapshot()">
+                        <i class="bi bi-trash"></i> Удалить
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно отправки в Telegram -->
+<div class="modal fade" id="telegramModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">📤 Отправка в Telegram</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Подпись к снимку</label>
+                    <input type="text" class="form-control" id="telegramCaption" value="📸 Снимок с камеры">
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Chat ID (если не указан в настройках)</label>
+                    <input type="text" class="form-control" id="telegramChatId" placeholder="Оставьте пустым для использования по умолчанию">
+                </div>
+                
+                <div class="mb-3 text-center">
+                    <img id="telegramPreview" src="" style="max-width: 100%; max-height: 200px; border-radius: 5px; display: none;">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" onclick="sendToTelegram()">Отправить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// ===== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ =====
+let snapshots = [];
+let filteredSnapshots = [];
+let currentSnapshot = null;
+let activeTypeFilters = [];
+let cameraNames = {};
+let contextMenuSnapshot = null;
+
+// ===== ИНИЦИАЛИЗАЦИЯ =====
+document.addEventListener('DOMContentLoaded', function() {
+    loadCamerasList();
+    loadSnapshots();
+    
+    // Устанавливаем даты для фильтра
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    document.getElementById('filterDateStart').value = todayStr;
+    document.getElementById('filterDateEnd').value = todayStr;
+    
+    // Обработчик контекстного меню
+    document.addEventListener('click', function() {
+        document.getElementById('contextMenu').style.display = 'none';
+    });
+});
+
+// ===== ЗАГРУЗКА ДАННЫХ =====
+function loadCamerasList() {
+    fetch('/api/cameras/status')
+        .then(r => r.json())
+        .then(data => {
+            const select = document.getElementById('filterCamera');
+            
+            if (data.cameras) {
+                select.innerHTML = '<option value="all">Все камеры</option>';
+                
+                data.cameras.forEach(cam => {
+                    select.innerHTML += `<option value="${cam.ip}">${cam.name}</option>`;
+                    cameraNames[cam.ip] = cam.name;
+                });
+            }
+        })
+        .catch(err => console.error('Error loading cameras:', err));
+}
+
+function loadSnapshots() {
+    fetch('/api/snapshots/list')
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                snapshots = data.snapshots || [];
+                console.log('Loaded snapshots:', snapshots.length);
+                applyFilters();
+            } else {
+                showNotification('error', 'Ошибка загрузки снимков');
+            }
+        })
+        .catch(err => {
+            console.error('Error loading snapshots:', err);
+            showNotification('error', 'Ошибка загрузки снимков');
+        });
+}
+
+// ===== ФИЛЬТРАЦИЯ =====
+function toggleTypeFilter(type) {
+    const index = activeTypeFilters.indexOf(type);
+    const badge = event.currentTarget;
+    
+    if (index === -1) {
+        activeTypeFilters.push(type);
+        badge.classList.add('active');
+    } else {
+        activeTypeFilters.splice(index, 1);
+        badge.classList.remove('active');
+    }
+    
+    applyFilters();
+}
+
+function setToday() {
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    document.getElementById('filterDateStart').value = todayStr;
+    document.getElementById('filterDateEnd').value = todayStr;
+    document.getElementById('filterTimeStart').value = '00:00';
+    document.getElementById('filterTimeEnd').value = '23:59';
+    applyFilters();
+}
+
+function setYesterday() {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const dateStr = yesterday.toISOString().split('T')[0];
+    document.getElementById('filterDateStart').value = dateStr;
+    document.getElementById('filterDateEnd').value = dateStr;
+    document.getElementById('filterTimeStart').value = '00:00';
+    document.getElementById('filterTimeEnd').value = '23:59';
+    applyFilters();
+}
+
+function setThisWeek() {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(start.getDate() - 7);
+    
+    document.getElementById('filterDateStart').value = start.toISOString().split('T')[0];
+    document.getElementById('filterDateEnd').value = end.toISOString().split('T')[0];
+    document.getElementById('filterTimeStart').value = '00:00';
+    document.getElementById('filterTimeEnd').value = '23:59';
+    applyFilters();
+}
+
+function applyFilters() {
+    const camera = document.getElementById('filterCamera').value;
+    const dateStart = document.getElementById('filterDateStart').value;
+    const timeStart = document.getElementById('filterTimeStart').value;
+    const dateEnd = document.getElementById('filterDateEnd').value;
+    const timeEnd = document.getElementById('filterTimeEnd').value;
+    const sort = document.getElementById('filterSort').value;
+    const minSize = parseFloat(document.getElementById('minSize').value) || 0;
+    
+    // Создаем временные метки для фильтрации
+    const startTimestamp = dateStart ? new Date(`${dateStart}T${timeStart || '00:00'}`).getTime() / 1000 : 0;
+    const endTimestamp = dateEnd ? new Date(`${dateEnd}T${timeEnd || '23:59'}`).getTime() / 1000 : Infinity;
+    
+    filteredSnapshots = snapshots.filter(snap => {
+        // Фильтр по камере
+        if (camera !== 'all' && snap.camera !== camera) return false;
+        
+        // Фильтр по времени
+        if (snap.time < startTimestamp || snap.time > endTimestamp) return false;
+        
+        // Фильтр по типу
+        if (activeTypeFilters.length > 0 && !activeTypeFilters.includes(snap.type)) return false;
+        
+        // Фильтр по размеру
+        const sizeKB = snap.size / 1024;
+        if (sizeKB < minSize) return false;
+        
+        return true;
+    });
+    
+    // Сортировка
+    filteredSnapshots.sort((a, b) => {
+        switch(sort) {
+            case 'oldest':
+                return a.time - b.time;
+            case 'size_desc':
+                return b.size - a.size;
+            case 'size_asc':
+                return a.size - b.size;
+            case 'camera':
+                return (cameraNames[a.camera] || a.camera).localeCompare(cameraNames[b.camera] || b.camera);
+            default: // newest
+                return b.time - a.time;
+        }
+    });
+    
+    renderSnapshots();
+    updateStats();
+}
+
+function resetFilters() {
+    document.getElementById('filterCamera').value = 'all';
+    
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    document.getElementById('filterDateStart').value = todayStr;
+    document.getElementById('filterDateEnd').value = todayStr;
+    document.getElementById('filterTimeStart').value = '00:00';
+    document.getElementById('filterTimeEnd').value = '23:59';
+    
+    document.getElementById('filterSort').value = 'newest';
+    document.getElementById('minSize').value = '';
+    
+    activeTypeFilters = [];
+    document.querySelectorAll('.filter-badge').forEach(b => b.classList.remove('active'));
+    
+    applyFilters();
+}
+
+// ===== ОТОБРАЖЕНИЕ СНИМКОВ =====
+function renderSnapshots() {
+    const grid = document.getElementById('snapshotsGrid');
+    const countSpan = document.getElementById('snapshotsCount');
+    
+    countSpan.textContent = filteredSnapshots.length;
+    
+    if (filteredSnapshots.length === 0) {
+        grid.innerHTML = '<div class="empty-state"><i class="bi bi-camera"></i><p>Нет снимков</p></div>';
+        return;
+    }
+    
+    grid.innerHTML = filteredSnapshots.map(snap => {
+        const date = new Date(snap.time * 1000);
+        const timeStr = date.toLocaleString();
+        const sizeKB = (snap.size / 1024).toFixed(1);
+        const cameraName = snap.camera_name || cameraNames[snap.camera] || snap.camera || 'Unknown';
+        
+        // Определяем иконку для типа
+        let typeIcon = '';
+        let typeClass = '';
+        
+        switch(snap.type) {
+            case 'manual':
+                typeIcon = '📸';
+                typeClass = 'manual';
+                break;
+            case 'motion':
+                typeIcon = '🚶';
+                typeClass = 'motion';
+                break;
+            case 'qr':
+                typeIcon = '📱';
+                typeClass = 'qr';
+                break;
+            case 'alert':
+                typeIcon = '⚠️';
+                typeClass = 'alert';
+                break;
+            case 'archive':
+                typeIcon = '📁';
+                typeClass = 'archive';
+                break;
+            default:
+                typeIcon = '🖼️';
+                typeClass = '';
+        }
+        
+        return `
+            <div class="snapshot-card" 
+                 onclick="viewSnapshot('${snap.id}')"
+                 oncontextmenu="showContextMenu(event, '${snap.id}')">
+                <img src="${snap.path}" class="snapshot-image" alt="Snapshot" 
+                     onerror="this.src='https://via.placeholder.com/200x150?text=No+Image'">
+                <div class="snapshot-size">${sizeKB} KB</div>
+                <div class="snapshot-info">
+                    <div class="snapshot-camera">${cameraName}</div>
+                    <div class="snapshot-time">${timeStr}</div>
+                    <div class="snapshot-tags">
+                        <span class="snapshot-tag ${typeClass}">${typeIcon} ${snap.type}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function updateStats() {
+    let totalSize = 0;
+    let today = new Date();
+    today.setHours(0, 0, 0, 0);
+    let todayTimestamp = today.getTime() / 1000;
+    
+    filteredSnapshots.forEach(snap => {
+        totalSize += snap.size;
+    });
+    
+    const todayCount = filteredSnapshots.filter(s => s.time >= todayTimestamp).length;
+    
+    document.getElementById('totalSize').textContent = (totalSize / (1024 * 1024)).toFixed(2) + ' MB';
+    document.getElementById('totalCount').textContent = filteredSnapshots.length;
+    document.getElementById('todayCount').textContent = todayCount;
+}
+
+// ===== ПРОСМОТР СНИМКА =====
+function viewSnapshot(id) {
+    const snapshot = snapshots.find(s => s.id == id);
+    if (!snapshot) return;
+    
+    currentSnapshot = snapshot;
+    
+    document.getElementById('snapshotModalTitle').textContent = `Снимок - ${snapshot.camera_name || cameraNames[snapshot.camera] || snapshot.camera}`;
+    document.getElementById('snapshotFullImage').src = snapshot.path;
+    
+    const date = new Date(snapshot.time * 1000);
+    const sizeKB = (snapshot.size / 1024).toFixed(1);
+    const sizeMB = (snapshot.size / (1024 * 1024)).toFixed(2);
+    
+    let typeText = '';
+    switch(snapshot.type) {
+        case 'manual': typeText = 'Ручной снимок'; break;
+        case 'motion': typeText = 'По движению'; break;
+        case 'qr': typeText = 'QR код'; break;
+        case 'alert': typeText = 'Тревога'; break;
+        case 'archive': typeText = 'Из архива'; break;
+        default: typeText = snapshot.type;
+    }
+    
+    document.getElementById('snapshotDetails').innerHTML = `
+        <div class="detail-row">
+            <span class="detail-label">Камера:</span>
+            <span class="detail-value">${snapshot.camera_name || cameraNames[snapshot.camera] || snapshot.camera}</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Время:</span>
+            <span class="detail-value">${date.toLocaleString()}</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Тип:</span>
+            <span class="detail-value">${typeText}</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Размер:</span>
+            <span class="detail-value">${sizeKB} KB (${sizeMB} MB)</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Файл:</span>
+            <span class="detail-value">${snapshot.filename}</span>
+        </div>
+    `;
+    
+    new bootstrap.Modal(document.getElementById('snapshotModal')).show();
+}
+
+// ===== КОНТЕКСТНОЕ МЕНЮ =====
+function showContextMenu(event, id) {
+    event.preventDefault();
+    contextMenuSnapshot = id;
+    
+    const menu = document.getElementById('contextMenu');
+    menu.style.display = 'block';
+    menu.style.left = event.pageX + 'px';
+    menu.style.top = event.pageY + 'px';
+}
+
+function downloadCurrentSnapshot() {
+    const snapshot = currentSnapshot || snapshots.find(s => s.id == contextMenuSnapshot);
+    if (snapshot) {
+        window.open(snapshot.path, '_blank');
+        document.getElementById('contextMenu').style.display = 'none';
+    }
+}
+
+function deleteCurrentSnapshot() {
+    const snapshot = currentSnapshot || snapshots.find(s => s.id == contextMenuSnapshot);
+    if (snapshot && confirm('Удалить этот снимок?')) {
+        fetch('/api/snapshots/delete', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({path: snapshot.path})
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('success', '✅ Снимок удален');
+                // Удаляем из массива
+                snapshots = snapshots.filter(s => s.id != snapshot.id);
+                applyFilters();
+                // Закрываем модальные окна
+                bootstrap.Modal.getInstance(document.getElementById('snapshotModal'))?.hide();
+            } else {
+                showNotification('error', '❌ Ошибка при удалении');
+            }
+        })
+        .catch(err => {
+            console.error('Error deleting snapshot:', err);
+            showNotification('error', '❌ Ошибка при удалении');
+        });
+        
+        document.getElementById('contextMenu').style.display = 'none';
+    }
+}
+
+// ===== TELEGRAM =====
+function showTelegramModal() {
+    const snapshot = currentSnapshot || snapshots.find(s => s.id == contextMenuSnapshot);
+    if (!snapshot) return;
+    
+    document.getElementById('telegramPreview').src = snapshot.path;
+    document.getElementById('telegramPreview').style.display = 'block';
+    document.getElementById('telegramCaption').value = `📸 Снимок с камеры ${snapshot.camera_name || cameraNames[snapshot.camera] || snapshot.camera}`;
+    
+    // Закрываем контекстное меню если открыто
+    document.getElementById('contextMenu').style.display = 'none';
+    
+    // Закрываем модальное окно просмотра если открыто
+    const snapshotModal = bootstrap.Modal.getInstance(document.getElementById('snapshotModal'));
+    if (snapshotModal) {
+        snapshotModal.hide();
+    }
+    
+    new bootstrap.Modal(document.getElementById('telegramModal')).show();
+}
+
+function sendToTelegram() {
+    const snapshot = currentSnapshot || snapshots.find(s => s.id == contextMenuSnapshot);
+    if (!snapshot) return;
+    
+    const caption = document.getElementById('telegramCaption').value;
+    const chatId = document.getElementById('telegramChatId').value;
+    
+    showNotification('info', 'Отправка в Telegram...');
+    
+    // Конвертируем изображение в base64
+    fetch(snapshot.path)
+        .then(response => response.blob())
+        .then(blob => {
+            const reader = new FileReader();
+            reader.onloadend = function() {
+                const base64data = reader.result.split(',')[1];
+                
+                fetch('/api/send_telegram_photo', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        photo: base64data,
+                        caption: caption,
+                        chat_id: chatId || undefined
+                    })
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification('success', '✅ Снимок отправлен');
+                        bootstrap.Modal.getInstance(document.getElementById('telegramModal')).hide();
+                    } else {
+                        showNotification('error', `❌ Ошибка: ${data.error}`);
+                    }
+                });
+            };
+            reader.readAsDataURL(blob);
+        })
+        .catch(err => {
+            console.error('Error sending to Telegram:', err);
+            showNotification('error', '❌ Ошибка при отправке');
+        });
+}
+
+// ===== ОБНОВЛЕНИЕ =====
+function refreshSnapshots() {
+    showNotification('info', 'Обновление списка снимков...');
+    loadSnapshots();
+}
+
+// ===== УВЕДОМЛЕНИЯ =====
+function showNotification(type, message) {
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.innerHTML = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 3000);
+}
+</script>
+{% endblock %}

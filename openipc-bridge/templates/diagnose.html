@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Диагностика{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="bi bi-heart-pulse"></i> Диагностика видео</h2>
+        <button class="btn btn-primary" onclick="runDiagnose()">
+            <i class="bi bi-arrow-repeat"></i> Запустить диагностику
+        </button>
+    </div>
+</div>
+
+<div id="results" class="mt-4"></div>
+
+<script>
+function runDiagnose() {
+    const resultsDiv = document.getElementById('results');
+    resultsDiv.innerHTML = '<div class="spinner-border"></div> Запуск диагностики...';
+    
+    fetch('/api/video/diagnose')
+        .then(r => r.json())
+        .then(data => {
+            let html = '<div class="card"><div class="card-header">Результаты</div><div class="card-body">';
+            
+            html += '<h5>go2rtc статус:</h5>';
+            html += `<p>Процесс: ${data.go2rtc_running ? '✅ Запущен' : '❌ Не запущен'}</p>`;
+            
+            html += '<h5>Порты:</h5><ul>';
+            for (const [port, status] of Object.entries(data.ports)) {
+                html += `<li>Порт ${port}: ${status ? '✅' : '❌'}</li>`;
+            }
+            html += '</ul>';
+            
+            html += '<h5>Настроенные камеры:</h5><ul>';
+            data.cameras.forEach(cam => {
+                html += `<li>${cam.name} (${cam.ip}) - main: ${cam.main}, sub: ${cam.sub}</li>`;
+            });
+            html += '</ul>';
+            
+            if (data.streams && data.streams.streams) {
+                html += '<h5>Активные стримы:</h5><ul>';
+                for (const [name, stream] of Object.entries(data.streams.streams)) {
+                    html += `<li>${name}: ${stream.type || 'unknown'}</li>`;
+                }
+                html += '</ul>';
+            }
+            
+            if (data.streams_error) {
+                html += `<p class="text-danger">Ошибка API: ${data.streams_error}</p>`;
+            }
+            
+            html += '</div></div>';
+            resultsDiv.innerHTML = html;
+        })
+        .catch(e => {
+            resultsDiv.innerHTML = `<p class="text-danger">Ошибка: ${e}</p>`;
+        });
+}
+</script>
+{% endblock %}

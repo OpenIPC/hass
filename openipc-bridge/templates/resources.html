@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block nav_resources %}active{% endblock %}
+{% block title %}Мониторинг ресурсов{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="bi bi-activity"></i> Мониторинг ресурсов</h2>
+    </div>
+</div>
+
+<div class="row mt-3">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <i class="bi bi-cpu"></i> Процессор
+            </div>
+            <div class="card-body">
+                <div class="progress" style="height: 30px;">
+                    <div class="progress-bar" id="cpuBar" role="progressbar" style="width: 0%">0%</div>
+                </div>
+                <p class="mt-2" id="cpuInfo"></p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <i class="bi bi-memory"></i> Память
+            </div>
+            <div class="card-body">
+                <div class="progress" style="height: 30px;">
+                    <div class="progress-bar" id="memoryBar" role="progressbar" style="width: 0%">0%</div>
+                </div>
+                <p class="mt-2" id="memoryInfo"></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-3">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <i class="bi bi-camera-video"></i> Процессы записи
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning" id="limitWarning"></div>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Камера</th>
+                            <th>PID</th>
+                            <th>CPU %</th>
+                            <th>Память (MB)</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="processList">
+                        <tr>
+                            <td colspan="5" class="text-center">Нет активных записей</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function updateResources() {
+    fetch('/api/recordings/resources')
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                // CPU
+                const cpuBar = document.getElementById('cpuBar');
+                cpuBar.style.width = data.cpu_percent + '%';
+                cpuBar.textContent = data.cpu_percent + '%';
+                cpuBar.className = data.cpu_percent > 80 ? 'progress-bar bg-danger' : 
+                                  (data.cpu_percent > 50 ? 'progress-bar bg-warning' : 'progress-bar bg-success');
+                
+                // Memory
+                const memoryBar = document.getElementById('memoryBar');
+                memoryBar.style.width = data.memory.percent + '%';
+                memoryBar.textContent = data.memory.percent + '%';
+                memoryBar.className = data.memory.percent > 80 ? 'progress-bar bg-danger' : 
+                                     (data.memory.percent > 50 ? 'progress-bar bg-warning' : 'progress-bar bg-success');
+                
+                document.getElementById('memoryInfo').innerHTML = 
+                    `Использовано: ${(data.memory.total * data.memory.percent / 100).toFixed(1)} GB / ${data.memory.total.toFixed(1)} GB`;
+                
+                // Предупреждение о лимите
+                const warning = document.getElementById('limitWarning');
+                if (data.active_recordings >= data.max_recordings) {
+                    warning.innerHTML = '⚠️ Достигнут лимит одновременных записей!';
+                    warning.className = 'alert alert-danger';
+                } else {
+                    warning.innerHTML = `Активных записей: ${data.active_recordings} из ${data.max_recordings}`;
+                    warning.className = 'alert alert-info';
+                }
+                
+                // Список процессов
+                const tbody = document.getElementById('processList');
+                if (data.ffmpeg_processes.length > 0) {
+                    tbody.innerHTML = data.ffmpeg_processes.map(p => `
+                        <tr>
+                            <td>${p.camera}</td>
+                            <td>${p.pid}</td>
+                            <td>
+                                <div class="progress">
+                                    <div class="progress-bar ${p.cpu > 50 ? 'bg-danger' : 'bg-info'}" 
+                                         style="width: ${p.cpu}%">${p.cpu.toFixed(1)}%</div>
+                                </div>
+                            </td>
+                            <td>${p.memory.toFixed(1)} MB</td>
+                            <td>
+                                <button class="btn btn-sm btn-danger" onclick="stopRecording('${p.camera}')">
+                                    <i class="bi bi-stop"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center">Нет активных записей</td></tr>';
+                }
+            }
+        });
+}
+
+function stopRecording(cameraIp) {
+    fetch('/api/recording/stop', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({camera: cameraIp})
+    }).then(() => updateResources());
+}
+
+// Обновляем каждые 2 секунды
+setInterval(updateResources, 2000);
+updateResources();
+</script>
+{% endblock %}

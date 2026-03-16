@@ -1,0 +1,2079 @@
+{% extends "base.html" %}
+{% block nav_archive %}active{% endblock %}
+{% block title %}Архив записей{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ===== ОСНОВНЫЕ СТИЛИ ===== */
+    .archive-container {
+        display: flex;
+        gap: 20px;
+        height: calc(100vh - 150px);
+        min-height: 700px;
+    }
+    
+    /* ===== ЛЕВАЯ ПАНЕЛЬ - СПИСОК ЗАПИСЕЙ ===== */
+    .recordings-panel {
+        width: 350px;
+        background: #1a1a1a;
+        border-radius: 10px;
+        padding: 15px;
+        color: #fff;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    
+    .panel-title {
+        font-size: 18px;
+        font-weight: bold;
+        color: #0d6efd;
+        margin-bottom: 15px;
+        border-bottom: 1px solid #444;
+        padding-bottom: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .stats-bar {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 15px;
+        padding: 10px;
+        background: #2d2d2d;
+        border-radius: 8px;
+    }
+    
+    .stat-item {
+        flex: 1;
+        text-align: center;
+    }
+    
+    .stat-value {
+        font-size: 18px;
+        font-weight: bold;
+        color: #0d6efd;
+    }
+    
+    .stat-label {
+        font-size: 10px;
+        color: #aaa;
+    }
+    
+    .recordings-list {
+        flex: 1;
+        overflow-y: auto;
+        margin-right: -5px;
+        padding-right: 5px;
+    }
+    
+    .recording-item {
+        background: #2d2d2d;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: 1px solid #444;
+        overflow: hidden;
+    }
+    
+    .recording-item:hover {
+        transform: translateX(5px);
+        border-color: #0d6efd;
+        background: #3d3d3d;
+    }
+    
+    .recording-item.selected {
+        border: 2px solid #0d6efd;
+        background: #3d3d3d;
+    }
+    
+    .recording-header {
+        padding: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #333;
+    }
+    
+    .recording-camera {
+        font-weight: bold;
+        color: #0d6efd;
+        font-size: 14px;
+    }
+    
+    .recording-time {
+        font-size: 11px;
+        color: #aaa;
+    }
+    
+    .recording-body {
+        padding: 10px 12px;
+    }
+    
+    .recording-meta {
+        display: flex;
+        justify-content: space-between;
+        font-size: 11px;
+        color: #aaa;
+        margin-bottom: 8px;
+    }
+    
+    .recording-events {
+        display: flex;
+        gap: 4px;
+        flex-wrap: wrap;
+    }
+    
+    .event-tag {
+        font-size: 9px;
+        padding: 2px 6px;
+        border-radius: 10px;
+        background: #444;
+    }
+    
+    .event-tag.motion {
+        background: #ffc107;
+        color: #000;
+    }
+    
+    .event-tag.person {
+        background: #28a745;
+        color: white;
+    }
+    
+    .event-tag.car {
+        background: #0d6efd;
+        color: white;
+    }
+    
+    .event-tag.qr {
+        background: #6f42c1;
+        color: white;
+    }
+    
+    .event-tag.lpr {
+        background: #dc3545;
+        color: white;
+    }
+    
+    .event-tag.perimeter {
+        background: #fd7e14;
+        color: white;
+    }
+    
+    /* ===== ПРАВАЯ ПАНЕЛЬ - ПЛЕЕР ===== */
+    .player-panel {
+        flex: 1;
+        background: #1a1a1a;
+        border-radius: 10px;
+        padding: 20px;
+        color: #fff;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .player-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+    
+    .player-title {
+        font-size: 18px;
+        font-weight: bold;
+        color: #0d6efd;
+    }
+    
+    .player-info {
+        display: flex;
+        gap: 15px;
+        align-items: center;
+    }
+    
+    .player-camera {
+        font-size: 14px;
+        color: #aaa;
+    }
+    
+    .player-type {
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 11px;
+        background: #28a745;
+        color: white;
+    }
+    
+    .player-type.trigger {
+        background: #ffc107;
+        color: #000;
+    }
+    
+    .player-video-container {
+        background: #000;
+        border-radius: 10px;
+        overflow: hidden;
+        margin-bottom: 15px;
+        position: relative;
+        min-height: 200px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .player-video {
+        width: 100%;
+        max-height: 400px;
+        background: #000;
+    }
+    
+    .player-controls {
+        margin-bottom: 15px;
+    }
+    
+    .timeline-container {
+        position: relative;
+        height: 70px;
+        background: #2d2d2d;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        cursor: pointer;
+        overflow: hidden;
+    }
+    
+    .timeline-progress {
+        position: absolute;
+        top: 20px;
+        left: 0;
+        height: 50px;
+        background: rgba(13, 110, 253, 0.3);
+        width: 0%;
+        border-radius: 8px;
+        pointer-events: none;
+        transition: width 0.1s linear;
+        z-index: 5;
+    }
+    
+    .timeline-events {
+        position: absolute;
+        top: 20px;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        pointer-events: none;
+        z-index: 10;
+    }
+    
+    .timeline-event {
+        position: absolute;
+        top: 20px;
+        width: 4px;
+        height: 50px;
+        transform: translateX(-50%);
+        cursor: pointer;
+        pointer-events: auto;
+        transition: all 0.2s;
+        z-index: 15;
+    }
+    
+    .timeline-event:hover {
+        width: 8px;
+        z-index: 20;
+        box-shadow: 0 0 10px currentColor;
+    }
+    
+    .timeline-event.motion {
+        background: #ffc107;
+    }
+    
+    .timeline-event.person {
+        background: #28a745;
+    }
+    
+    .timeline-event.car {
+        background: #0d6efd;
+    }
+    
+    .timeline-event.qr {
+        background: #6f42c1;
+    }
+    
+    .timeline-event.lpr {
+        background: #dc3545;
+    }
+    
+    .timeline-event.perimeter {
+        background: #fd7e14;
+    }
+    
+    .timeline-tooltip {
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0,0,0,0.9);
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 10px;
+        white-space: nowrap;
+        display: none;
+        z-index: 30;
+        pointer-events: none;
+        border: 1px solid #444;
+    }
+    
+    .timeline-event:hover .timeline-tooltip {
+        display: block;
+    }
+    
+    /* Временные метки на шкале */
+    .timeline-time-markers {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 20px;
+        pointer-events: none;
+        z-index: 25;
+    }
+    
+    .timeline-time-marker {
+        position: absolute;
+        top: 0;
+        height: 20px;
+        width: 1px;
+        background: rgba(255, 255, 255, 0.3);
+        pointer-events: none;
+        z-index: 26;
+    }
+    
+    .timeline-time-label {
+        position: absolute;
+        top: 2px;
+        transform: translateX(-50%);
+        font-size: 9px;
+        color: rgba(255, 255, 255, 0.9);
+        background: rgba(0, 0, 0, 0.7);
+        padding: 1px 3px;
+        border-radius: 3px;
+        white-space: nowrap;
+        pointer-events: none;
+        z-index: 27;
+    }
+    
+    /* Абсолютное время */
+    .time-absolute {
+        font-size: 11px;
+        color: #0d6efd;
+        margin-bottom: 5px;
+        text-align: center;
+        background: #2d2d2d;
+        padding: 3px;
+        border-radius: 4px;
+    }
+    
+    .time-absolute i {
+        margin-right: 5px;
+    }
+    
+    .time-markers {
+        display: flex;
+        justify-content: space-between;
+        font-size: 11px;
+        color: #aaa;
+        margin-top: 5px;
+    }
+    
+    .control-buttons {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin-top: 10px;
+        flex-wrap: wrap;
+    }
+    
+    .control-btn {
+        background: #333;
+        border: 1px solid #444;
+        color: white;
+        padding: 8px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        transition: all 0.2s;
+    }
+    
+    .control-btn:hover {
+        background: #0d6efd;
+        transform: translateY(-2px);
+    }
+    
+    .control-btn:active {
+        transform: translateY(0);
+    }
+    
+    .control-btn.play {
+        background: #28a745;
+    }
+    
+    .control-btn.play:hover {
+        background: #218838;
+    }
+    
+    .control-btn.export {
+        background: #ffc107;
+        color: #000;
+    }
+    
+    .control-btn.export:hover {
+        background: #e0a800;
+    }
+    
+    .control-btn.snapshot {
+        background: #6f42c1;
+    }
+    
+    .control-btn.snapshot:hover {
+        background: #5a32a3;
+    }
+    
+    .control-btn.telegram {
+        background: #0088cc;
+    }
+    
+    .control-btn.telegram:hover {
+        background: #006699;
+    }
+    
+    .speed-select {
+        background: #333;
+        border: 1px solid #444;
+        color: white;
+        padding: 6px;
+        border-radius: 5px;
+        font-size: 12px;
+        cursor: pointer;
+    }
+    
+    .time-display {
+        font-size: 13px;
+        color: #0d6efd;
+        font-family: monospace;
+        margin-left: auto;
+    }
+    
+    .events-list {
+        background: #2d2d2d;
+        border-radius: 8px;
+        padding: 10px;
+        margin-top: 15px;
+        max-height: 150px;
+        overflow-y: auto;
+    }
+    
+    .events-title {
+        font-size: 13px;
+        font-weight: bold;
+        color: #0d6efd;
+        margin-bottom: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .event-item {
+        display: flex;
+        align-items: center;
+        padding: 5px 8px;
+        border-bottom: 1px solid #444;
+        cursor: pointer;
+        transition: all 0.2s;
+        border-radius: 4px;
+        font-size: 11px;
+    }
+    
+    .event-item:hover {
+        background: #3d3d3d;
+    }
+    
+    .event-item:last-child {
+        border-bottom: none;
+    }
+    
+    .event-time {
+        width: 50px;
+        font-family: monospace;
+        color: #0d6efd;
+    }
+    
+    .event-icon {
+        width: 20px;
+        text-align: center;
+        margin-right: 5px;
+    }
+    
+    .event-desc {
+        flex: 1;
+    }
+    
+    /* ===== ФИЛЬТРЫ ===== */
+    .filters-panel {
+        width: 320px;
+        background: #1a1a1a;
+        border-radius: 10px;
+        padding: 15px;
+        color: #fff;
+        overflow-y: auto;
+    }
+    
+    .filter-section {
+        background: #2d2d2d;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .filter-title {
+        font-size: 14px;
+        font-weight: bold;
+        color: #0d6efd;
+        margin-bottom: 12px;
+        border-bottom: 1px solid #444;
+        padding-bottom: 5px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .filter-title .badge {
+        background: #444;
+        color: #aaa;
+        font-size: 10px;
+    }
+    
+    .filter-row {
+        margin-bottom: 12px;
+    }
+    
+    .filter-label {
+        font-size: 12px;
+        color: #aaa;
+        margin-bottom: 4px;
+    }
+    
+    .filter-select {
+        width: 100%;
+        background: #333;
+        border: 1px solid #444;
+        color: white;
+        padding: 8px 10px;
+        border-radius: 5px;
+        font-size: 12px;
+    }
+    
+    .filter-input {
+        width: 100%;
+        background: #333;
+        border: 1px solid #444;
+        color: white;
+        padding: 8px 10px;
+        border-radius: 5px;
+        font-size: 12px;
+    }
+    
+    .filter-date-time {
+        display: flex;
+        gap: 5px;
+        align-items: center;
+    }
+    
+    .filter-date-time .filter-input {
+        flex: 1;
+    }
+    
+    .filter-date-time span {
+        color: #666;
+        font-size: 12px;
+    }
+    
+    .filter-checkbox {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+        font-size: 12px;
+    }
+    
+    .filter-checkbox input {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+    }
+    
+    .filter-badge {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 12px;
+        font-size: 10px;
+        margin-right: 5px;
+        margin-bottom: 5px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .filter-badge:hover {
+        transform: scale(1.05);
+    }
+    
+    .filter-badge.active {
+        outline: 2px solid #fff;
+        outline-offset: 2px;
+    }
+    
+    .badge-motion {
+        background: #ffc107;
+        color: #000;
+    }
+    
+    .badge-person {
+        background: #28a745;
+        color: white;
+    }
+    
+    .badge-car {
+        background: #0d6efd;
+        color: white;
+    }
+    
+    .badge-qr {
+        background: #6f42c1;
+        color: white;
+    }
+    
+    .badge-lpr {
+        background: #dc3545;
+        color: white;
+    }
+    
+    .badge-perimeter {
+        background: #fd7e14;
+        color: white;
+    }
+    
+    .filter-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+    }
+    
+    .filter-btn {
+        flex: 1;
+        background: #333;
+        border: 1px solid #444;
+        color: white;
+        padding: 8px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 12px;
+        text-align: center;
+        transition: all 0.2s;
+    }
+    
+    .filter-btn:hover {
+        background: #0d6efd;
+    }
+    
+    .filter-btn.reset:hover {
+        background: #dc3545;
+    }
+    
+    /* ===== КОНТЕКСТНОЕ МЕНЮ ===== */
+    .context-menu {
+        position: fixed;
+        background: #2d2d2d;
+        border: 1px solid #444;
+        border-radius: 5px;
+        padding: 5px 0;
+        min-width: 150px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+        z-index: 1000;
+        display: none;
+    }
+    
+    .context-menu-item {
+        padding: 8px 15px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 12px;
+    }
+    
+    .context-menu-item:hover {
+        background: #0d6efd;
+    }
+    
+    .context-menu-item.delete:hover {
+        background: #dc3545;
+    }
+    
+    /* ===== МОДАЛЬНОЕ ОКНО ===== */
+    .modal-content {
+        background: #2d2d2d;
+        color: white;
+    }
+    
+    .modal-header {
+        border-bottom: 1px solid #444;
+    }
+    
+    .modal-footer {
+        border-top: 1px solid #444;
+    }
+    
+    .modal .form-control,
+    .modal .form-select {
+        background: #333;
+        border: 1px solid #444;
+        color: white;
+    }
+    
+    .modal .form-control:focus,
+    .modal .form-select:focus {
+        border-color: #0d6efd;
+        box-shadow: none;
+    }
+    
+    /* ===== ЗАГРУЗЧИК ===== */
+    .loading-spinner {
+        display: inline-block;
+        width: 30px;
+        height: 30px;
+        border: 3px solid rgba(255,255,255,.3);
+        border-radius: 50%;
+        border-top-color: #0d6efd;
+        animation: spin 1s ease-in-out infinite;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    
+    /* ===== УВЕДОМЛЕНИЯ ===== */
+    .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        min-width: 300px;
+        background: #28a745;
+        color: white;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+        z-index: 9999;
+        animation: slideIn 0.3s;
+    }
+    
+    .notification.error {
+        background: #dc3545;
+    }
+    
+    .notification.warning {
+        background: #ffc107;
+        color: #000;
+    }
+    
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    /* ===== АДАПТИВНОСТЬ ===== */
+    @media (max-width: 1400px) {
+        .archive-container {
+            flex-direction: column;
+            height: auto;
+        }
+        
+        .recordings-panel {
+            width: 100%;
+            max-height: 300px;
+        }
+        
+        .filters-panel {
+            width: 100%;
+        }
+    }
+    
+    /* ===== ПОИСК ===== */
+    .search-box {
+        position: relative;
+        margin-bottom: 10px;
+    }
+    
+    .search-box input {
+        width: 100%;
+        background: #333;
+        border: 1px solid #444;
+        color: white;
+        padding: 8px 35px 8px 10px;
+        border-radius: 5px;
+        font-size: 12px;
+    }
+    
+    .search-box i {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #666;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        color: #666;
+    }
+    
+    .empty-state i {
+        font-size: 48px;
+        margin-bottom: 15px;
+    }
+    
+    /* ===== ИНДИКАТОР ЗАГРУЗКИ ВИДЕО ===== */
+    .video-loading {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        color: #aaa;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="archive-container">
+    <!-- ЛЕВАЯ ПАНЕЛЬ - СПИСОК ЗАПИСЕЙ -->
+    <div class="recordings-panel">
+        <div class="panel-title">
+            <span><i class="bi bi-film"></i> Записи</span>
+            <span class="badge bg-primary" id="recordingsCount">0</span>
+        </div>
+        
+        <!-- Поиск -->
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Поиск по названию камеры..." oninput="filterRecordings()">
+            <i class="bi bi-search"></i>
+        </div>
+        
+        <div class="stats-bar">
+            <div class="stat-item">
+                <div class="stat-value" id="totalSize">0 MB</div>
+                <div class="stat-label">Общий размер</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="totalDuration">0 ч</div>
+                <div class="stat-label">Длительность</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="totalEvents">0</div>
+                <div class="stat-label">Событий</div>
+            </div>
+        </div>
+        
+        <div class="recordings-list" id="recordingsList">
+            <!-- Загружается через JS -->
+            <div class="text-center p-4">
+                <div class="loading-spinner"></div>
+                <p class="mt-2">Загрузка записей...</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ЦЕНТРАЛЬНАЯ ПАНЕЛЬ - ПЛЕЕР -->
+    <div class="player-panel" id="playerPanel">
+        <div class="player-header">
+            <div class="player-title" id="playerTitle">Просмотр записи</div>
+            <div class="player-info">
+                <span class="player-camera" id="playerCamera"></span>
+                <span class="player-type" id="playerType"></span>
+            </div>
+        </div>
+        
+        <div class="player-video-container" id="videoContainer">
+            <video class="player-video" id="playerVideo" controls style="display: none;"></video>
+            <div id="noVideo" class="empty-state">
+                <i class="bi bi-camera-video-off"></i>
+                <p>Выберите запись для просмотра</p>
+            </div>
+            <div id="videoLoading" class="video-loading" style="display: none;">
+                <div class="loading-spinner"></div>
+                <p class="mt-2">Загрузка видео...</p>
+            </div>
+        </div>
+        
+        <div class="player-controls">
+            <!-- Временная шкала с событиями и временем записи -->
+            <div class="timeline-container" id="timeline" onclick="seekVideo(event)">
+                <div class="timeline-progress" id="timelineProgress"></div>
+                <div class="timeline-events" id="timelineEvents"></div>
+                <!-- Временные метки -->
+                <div class="timeline-time-markers" id="timelineTimeMarkers"></div>
+            </div>
+            
+            <!-- Отображение абсолютного времени -->
+            <div class="time-absolute" id="timeAbsolute">
+                <i class="bi bi-clock"></i> <span id="recordingTime">--:--:--</span>
+            </div>
+            
+            <div class="time-markers">
+                <span id="timeCurrent">00:00</span>
+                <span id="timeDuration">00:00</span>
+            </div>
+            
+            <!-- Кнопки управления -->
+            <div class="control-buttons">
+                <button class="control-btn play" onclick="togglePlay()" id="playBtn" disabled>
+                    <i class="bi bi-play"></i>
+                </button>
+                
+                <button class="control-btn" onclick="skipBackward()" disabled>
+                    <i class="bi bi-skip-backward"></i> -10с
+                </button>
+                
+                <button class="control-btn" onclick="skipForward()" disabled>
+                    +10с <i class="bi bi-skip-forward"></i>
+                </button>
+                
+                <select class="speed-select" id="playbackSpeed" onchange="changeSpeed()" disabled>
+                    <option value="0.5">0.5x</option>
+                    <option value="1" selected>1x</option>
+                    <option value="1.5">1.5x</option>
+                    <option value="2">2x</option>
+                    <option value="4">4x</option>
+                    <option value="8">8x</option>
+                </select>
+            </div>
+            
+            <div class="control-buttons">
+                <button class="control-btn" onclick="prevEvent()" disabled title="Предыдущее событие">
+                    <i class="bi bi-skip-start"></i>
+                </button>
+                
+                <button class="control-btn" onclick="nextEvent()" disabled title="Следующее событие">
+                    <i class="bi bi-skip-end"></i>
+                </button>
+                
+                <button class="control-btn snapshot" onclick="takeSnapshot()" disabled title="Сделать снимок">
+                    <i class="bi bi-camera"></i> Снимок
+                </button>
+                
+                <button class="control-btn telegram" onclick="showTelegramModal()" disabled title="Отправить в Telegram">
+                    <i class="bi bi-telegram"></i> Telegram
+                </button>
+                
+                <button class="control-btn export" onclick="exportVideo()" disabled title="Скачать видео">
+                    <i class="bi bi-download"></i> Скачать
+                </button>
+                
+                <button class="control-btn" onclick="deleteRecording()" disabled title="Удалить запись" style="background: #dc3545;">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Список событий -->
+        <div class="events-list" id="eventsList">
+            <div class="events-title">
+                <span><i class="bi bi-list-check"></i> События</span>
+                <span class="badge bg-primary" id="eventsCount">0</span>
+            </div>
+            <div id="eventsContainer"></div>
+        </div>
+    </div>
+    
+    <!-- ПРАВАЯ ПАНЕЛЬ - ФИЛЬТРЫ -->
+    <div class="filters-panel">
+        <div class="filter-section">
+            <div class="filter-title">
+                <span><i class="bi bi-camera"></i> Камера</span>
+                <span class="badge" id="selectedCameraCount">все</span>
+            </div>
+            <div class="filter-row">
+                <select class="filter-select" id="filterCamera" onchange="updateCameraSelection()">
+                    <option value="all">Все камеры</option>
+                </select>
+            </div>
+            <div class="filter-checkbox">
+                <input type="checkbox" id="selectAllCameras" checked onchange="toggleAllCameras()">
+                <label for="selectAllCameras">Выбрать все</label>
+            </div>
+            <div id="cameraCheckboxes" style="max-height: 150px; overflow-y: auto; margin-top: 10px;">
+                <!-- Загружается через JS -->
+            </div>
+        </div>
+        
+        <div class="filter-section">
+            <div class="filter-title">
+                <span><i class="bi bi-calendar"></i> Дата и время</span>
+            </div>
+            
+            <div class="filter-row">
+                <div class="filter-label">Начало</div>
+                <div class="filter-date-time">
+                    <input type="date" class="filter-input" id="filterDateStart">
+                    <input type="time" class="filter-input" id="filterTimeStart" value="00:00">
+                </div>
+            </div>
+            
+            <div class="filter-row">
+                <div class="filter-label">Конец</div>
+                <div class="filter-date-time">
+                    <input type="date" class="filter-input" id="filterDateEnd">
+                    <input type="time" class="filter-input" id="filterTimeEnd" value="23:59">
+                </div>
+            </div>
+            
+            <div class="filter-row">
+                <button class="filter-btn" style="flex: 1;" onclick="setToday()">Сегодня</button>
+                <button class="filter-btn" style="flex: 1;" onclick="setYesterday()">Вчера</button>
+                <button class="filter-btn" style="flex: 1;" onclick="setThisWeek()">Неделя</button>
+            </div>
+        </div>
+        
+        <div class="filter-section">
+            <div class="filter-title">🏷️ События</div>
+            <div class="filter-row">
+                <span class="filter-badge badge-motion" onclick="toggleEventFilter('motion')">🚶 Движение</span>
+                <span class="filter-badge badge-person" onclick="toggleEventFilter('person')">👤 Человек</span>
+                <span class="filter-badge badge-car" onclick="toggleEventFilter('car')">🚗 Авто</span>
+            </div>
+            <div class="filter-row">
+                <span class="filter-badge badge-qr" onclick="toggleEventFilter('qr')">📱 QR</span>
+                <span class="filter-badge badge-lpr" onclick="toggleEventFilter('lpr')">🔢 Номер</span>
+                <span class="filter-badge badge-perimeter" onclick="toggleEventFilter('perimeter')">📏 Периметр</span>
+            </div>
+        </div>
+        
+        <div class="filter-section">
+            <div class="filter-title">⚙️ Дополнительно</div>
+            
+            <div class="filter-row">
+                <div class="filter-label">Минимальный размер</div>
+                <input type="number" class="filter-input" id="minSize" placeholder="MB" min="0" step="1">
+            </div>
+            
+            <div class="filter-row">
+                <div class="filter-label">Максимальный размер</div>
+                <input type="number" class="filter-input" id="maxSize" placeholder="MB" min="0" step="1">
+            </div>
+            
+            <div class="filter-row">
+                <div class="filter-label">Сортировка</div>
+                <select class="filter-select" id="filterSort">
+                    <option value="newest">Сначала новые</option>
+                    <option value="oldest">Сначала старые</option>
+                    <option value="size_desc">По размеру (большие)</option>
+                    <option value="size_asc">По размеру (маленькие)</option>
+                    <option value="duration_desc">По длительности (длинные)</option>
+                    <option value="duration_asc">По длительности (короткие)</option>
+                    <option value="camera">По камере</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="filter-actions">
+            <button class="filter-btn" onclick="applyFilters()">
+                <i class="bi bi-search"></i> Применить
+            </button>
+            <button class="filter-btn reset" onclick="resetFilters()">
+                <i class="bi bi-arrow-repeat"></i> Сброс
+            </button>
+        </div>
+        
+        <div class="filter-section" style="margin-top: 10px;">
+            <div class="filter-title">
+                <span><i class="bi bi-arrow-repeat"></i> Управление</span>
+            </div>
+            <button class="filter-btn" style="width: 100%; margin-bottom: 5px;" onclick="refreshRecordings()">
+                <i class="bi bi-arrow-repeat"></i> Обновить список
+            </button>
+            <button class="filter-btn" style="width: 100%;" onclick="exportFilteredList()">
+                <i class="bi bi-file-text"></i> Экспорт списка (CSV)
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Контекстное меню -->
+<div class="context-menu" id="contextMenu">
+    <div class="context-menu-item" onclick="playFromContext()">
+        <i class="bi bi-play"></i> Воспроизвести
+    </div>
+    <div class="context-menu-item" onclick="downloadFromContext()">
+        <i class="bi bi-download"></i> Скачать
+    </div>
+    <div class="context-menu-item" onclick="showTelegramModal()">
+        <i class="bi bi-telegram"></i> Отправить в Telegram
+    </div>
+    <div class="context-menu-item delete" onclick="deleteFromContext()">
+        <i class="bi bi-trash"></i> Удалить
+    </div>
+</div>
+
+<!-- Модальное окно отправки в Telegram -->
+<div class="modal fade" id="telegramModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">📤 Отправка в Telegram</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Что отправить?</label>
+                    <div class="btn-group w-100" role="group">
+                        <input type="radio" class="btn-check" name="telegramType" id="typeVideo" value="video" checked autocomplete="off">
+                        <label class="btn btn-outline-primary" for="typeVideo">🎬 Видео</label>
+                        
+                        <input type="radio" class="btn-check" name="telegramType" id="typeSnapshot" value="snapshot" autocomplete="off">
+                        <label class="btn btn-outline-primary" for="typeSnapshot">📸 Снимок</label>
+                    </div>
+                </div>
+                
+                <div class="mb-3" id="videoOptions">
+                    <label class="form-label">Качество видео</label>
+                    <select class="form-select" id="videoQuality">
+                        <option value="original">Исходное (без сжатия)</option>
+                        <option value="high">Высокое (720p)</option>
+                        <option value="medium">Среднее (480p)</option>
+                        <option value="low" selected>Низкое (360p) - для экономии</option>
+                    </select>
+                    <small class="text-muted">Для экономии трафика рекомендуется низкое качество</small>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Подпись</label>
+                    <input type="text" class="form-control" id="telegramCaption" value="📹 Запись с камеры">
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Chat ID (если не указан в настройках)</label>
+                    <input type="text" class="form-control" id="telegramChatId" placeholder="Оставьте пустым для использования по умолчанию">
+                </div>
+                
+                <div class="mb-3" id="snapshotPreview" style="display:none;">
+                    <img id="previewImage" src="" style="max-width:100%; max-height:200px; border-radius:5px;">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" onclick="sendToTelegram()">Отправить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// ===== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ =====
+let recordings = [];
+let filteredRecordings = [];
+let currentRecording = null;
+let currentEvents = [];
+let currentEventIndex = -1;
+let activeEventFilters = [];
+let currentSnapshotBlob = null;
+let selectedCameras = new Set();
+let contextMenuRecording = null;
+let cameraNames = {};
+
+// ===== ИНИЦИАЛИЗАЦИЯ =====
+document.addEventListener('DOMContentLoaded', function() {
+    loadCamerasList();
+    loadRecordings();
+    
+    // Устанавливаем даты для фильтра
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    
+    // По умолчанию показываем записи за сегодня
+    document.getElementById('filterDateStart').value = todayStr;
+    document.getElementById('filterDateEnd').value = todayStr;
+    document.getElementById('filterTimeStart').value = '00:00';
+    document.getElementById('filterTimeEnd').value = '23:59';
+    
+    // Обработчик контекстного меню
+    document.addEventListener('click', function() {
+        document.getElementById('contextMenu').style.display = 'none';
+    });
+    
+    // Обработчик переключения типа отправки
+    document.querySelectorAll('input[name="telegramType"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            document.getElementById('videoOptions').style.display = this.value === 'video' ? 'block' : 'none';
+            document.getElementById('snapshotPreview').style.display = this.value === 'snapshot' ? 'block' : 'none';
+        });
+    });
+    
+    // Обработчик изменения размера окна для перерисовки меток времени
+    window.addEventListener('resize', function() {
+        if (currentRecording) {
+            renderTimeMarkers();
+        }
+    });
+});
+
+// ===== ЗАГРУЗКА ДАННЫХ =====
+function loadCamerasList() {
+    fetch('/api/cameras/status')
+        .then(r => r.json())
+        .then(data => {
+            const select = document.getElementById('filterCamera');
+            const checkboxDiv = document.getElementById('cameraCheckboxes');
+            
+            if (data.cameras) {
+                select.innerHTML = '<option value="all">Все камеры</option>';
+                checkboxDiv.innerHTML = '';
+                
+                data.cameras.forEach(cam => {
+                    // Для select
+                    select.innerHTML += `<option value="${cam.ip}">${cam.name}</option>`;
+                    
+                    // Для чекбоксов
+                    cameraNames[cam.ip] = cam.name;
+                    checkboxDiv.innerHTML += `
+                        <div class="filter-checkbox">
+                            <input type="checkbox" class="camera-checkbox" id="cam_${cam.ip}" value="${cam.ip}" checked onchange="updateCameraSelection()">
+                            <label for="cam_${cam.ip}">${cam.name}</label>
+                        </div>
+                    `;
+                    selectedCameras.add(cam.ip);
+                });
+                
+                updateCameraSelection();
+            }
+        })
+        .catch(err => {
+            console.error('Error loading cameras:', err);
+        });
+}
+
+function loadRecordings() {
+    fetch('/api/recordings')
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                recordings = data.recordings || [];
+                console.log('Loaded recordings:', recordings.length);
+                applyFilters();
+            } else {
+                showNotification('error', 'Ошибка загрузки записей');
+            }
+        })
+        .catch(err => {
+            console.error('Error loading recordings:', err);
+            showNotification('error', 'Ошибка загрузки записей');
+        });
+}
+
+// ===== ФИЛЬТРАЦИЯ ПО КАМЕРАМ =====
+function updateCameraSelection() {
+    selectedCameras.clear();
+    document.querySelectorAll('.camera-checkbox:checked').forEach(cb => {
+        selectedCameras.add(cb.value);
+    });
+    
+    const count = selectedCameras.size;
+    const total = document.querySelectorAll('.camera-checkbox').length;
+    document.getElementById('selectedCameraCount').textContent = count === total ? 'все' : 
+                                                               (count === 0 ? 'нет' : count + ' камер');
+    
+    document.getElementById('selectAllCameras').checked = count === total;
+}
+
+function toggleAllCameras() {
+    const checked = document.getElementById('selectAllCameras').checked;
+    document.querySelectorAll('.camera-checkbox').forEach(cb => {
+        cb.checked = checked;
+    });
+    updateCameraSelection();
+    applyFilters();
+}
+
+// ===== ФИЛЬТРАЦИЯ ПО ДАТЕ И ВРЕМЕНИ =====
+function setToday() {
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    document.getElementById('filterDateStart').value = todayStr;
+    document.getElementById('filterDateEnd').value = todayStr;
+    document.getElementById('filterTimeStart').value = '00:00';
+    document.getElementById('filterTimeEnd').value = '23:59';
+    applyFilters();
+}
+
+function setYesterday() {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const dateStr = yesterday.toISOString().split('T')[0];
+    document.getElementById('filterDateStart').value = dateStr;
+    document.getElementById('filterDateEnd').value = dateStr;
+    document.getElementById('filterTimeStart').value = '00:00';
+    document.getElementById('filterTimeEnd').value = '23:59';
+    applyFilters();
+}
+
+function setThisWeek() {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(start.getDate() - 7);
+    
+    document.getElementById('filterDateStart').value = start.toISOString().split('T')[0];
+    document.getElementById('filterDateEnd').value = end.toISOString().split('T')[0];
+    document.getElementById('filterTimeStart').value = '00:00';
+    document.getElementById('filterTimeEnd').value = '23:59';
+    applyFilters();
+}
+
+// ===== ПОИСК =====
+function filterRecordings() {
+    applyFilters();
+}
+
+// ===== ФИЛЬТРАЦИЯ ПО СОБЫТИЯМ =====
+function toggleEventFilter(eventType) {
+    const index = activeEventFilters.indexOf(eventType);
+    const badge = event.currentTarget;
+    
+    if (index === -1) {
+        activeEventFilters.push(eventType);
+        badge.classList.add('active');
+    } else {
+        activeEventFilters.splice(index, 1);
+        badge.classList.remove('active');
+    }
+    
+    applyFilters();
+}
+
+// ===== ПРИМЕНЕНИЕ ВСЕХ ФИЛЬТРОВ =====
+function applyFilters() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const dateStart = document.getElementById('filterDateStart').value;
+    const timeStart = document.getElementById('filterTimeStart').value;
+    const dateEnd = document.getElementById('filterDateEnd').value;
+    const timeEnd = document.getElementById('filterTimeEnd').value;
+    const sort = document.getElementById('filterSort').value;
+    const minSize = parseFloat(document.getElementById('minSize').value) || 0;
+    const maxSize = parseFloat(document.getElementById('maxSize').value) || Infinity;
+    
+    // Создаем временные метки для фильтрации
+    const startTimestamp = dateStart ? new Date(`${dateStart}T${timeStart || '00:00'}`).getTime() / 1000 : 0;
+    const endTimestamp = dateEnd ? new Date(`${dateEnd}T${timeEnd || '23:59'}`).getTime() / 1000 : Infinity;
+    
+    console.log('Filtering recordings:', {
+        start: dateStart ? new Date(startTimestamp * 1000).toLocaleString() : 'beginning',
+        end: dateEnd ? new Date(endTimestamp * 1000).toLocaleString() : 'end',
+        totalRecordings: recordings.length
+    });
+    
+    filteredRecordings = recordings.filter(rec => {
+        // Фильтр по камерам
+        if (selectedCameras.size > 0 && !selectedCameras.has(rec.camera)) {
+            return false;
+        }
+        
+        // Фильтр по поиску
+        if (searchTerm) {
+            const cameraName = cameraNames[rec.camera] || rec.camera;
+            if (!cameraName.toLowerCase().includes(searchTerm)) {
+                return false;
+            }
+        }
+        
+        // Фильтр по времени
+        if (rec.start < startTimestamp || rec.start > endTimestamp) {
+            return false;
+        }
+        
+        // Фильтр по размеру
+        const sizeMB = rec.size / (1024 * 1024);
+        if (sizeMB < minSize || sizeMB > maxSize) {
+            return false;
+        }
+        
+        // Фильтр по событиям
+        if (activeEventFilters.length > 0) {
+            let hasEvent = false;
+            for (const eventType of activeEventFilters) {
+                if (eventType === 'motion' && rec.has_motion) hasEvent = true;
+                else if (eventType === 'person' && rec.has_person) hasEvent = true;
+                else if (eventType === 'car' && rec.has_car) hasEvent = true;
+                else if (eventType === 'qr' && rec.has_qr) hasEvent = true;
+                else if (eventType === 'lpr' && rec.has_lpr) hasEvent = true;
+                else if (eventType === 'perimeter' && rec.has_perimeter) hasEvent = true;
+            }
+            if (!hasEvent) return false;
+        }
+        
+        return true;
+    });
+    
+    console.log('Filtered recordings:', filteredRecordings.length);
+    
+    // Сортировка
+    filteredRecordings.sort((a, b) => {
+        switch(sort) {
+            case 'oldest':
+                return a.start - b.start;
+            case 'size_desc':
+                return b.size - a.size;
+            case 'size_asc':
+                return a.size - b.size;
+            case 'duration_desc':
+                return b.duration - a.duration;
+            case 'duration_asc':
+                return a.duration - b.duration;
+            case 'camera':
+                return (cameraNames[a.camera] || a.camera).localeCompare(cameraNames[b.camera] || b.camera);
+            default: // newest
+                return b.start - a.start;
+        }
+    });
+    
+    renderRecordings();
+    updateStats();
+}
+
+function resetFilters() {
+    // Сброс камер
+    document.querySelectorAll('.camera-checkbox').forEach(cb => {
+        cb.checked = true;
+    });
+    updateCameraSelection();
+    
+    // Сброс даты на сегодня
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    document.getElementById('filterDateStart').value = todayStr;
+    document.getElementById('filterDateEnd').value = todayStr;
+    document.getElementById('filterTimeStart').value = '00:00';
+    document.getElementById('filterTimeEnd').value = '23:59';
+    
+    // Сброс поиска
+    document.getElementById('searchInput').value = '';
+    
+    // Сброс событий
+    activeEventFilters = [];
+    document.querySelectorAll('.filter-badge').forEach(b => b.classList.remove('active'));
+    
+    // Сброс размеров
+    document.getElementById('minSize').value = '';
+    document.getElementById('maxSize').value = '';
+    
+    // Сброс сортировки
+    document.getElementById('filterSort').value = 'newest';
+    
+    applyFilters();
+}
+
+// ===== ОТОБРАЖЕНИЕ ЗАПИСЕЙ =====
+function renderRecordings() {
+    const container = document.getElementById('recordingsList');
+    const countSpan = document.getElementById('recordingsCount');
+    
+    countSpan.textContent = filteredRecordings.length;
+    
+    if (filteredRecordings.length === 0) {
+        container.innerHTML = '<div class="empty-state"><i class="bi bi-film"></i><p>Нет записей</p></div>';
+        return;
+    }
+    
+    container.innerHTML = filteredRecordings.map(rec => {
+        const date = new Date(rec.start * 1000);
+        const timeStr = date.toLocaleTimeString();
+        const dateStr = date.toLocaleDateString();
+        const sizeMB = (rec.size / (1024 * 1024)).toFixed(1);
+        const durationMin = Math.floor(rec.duration / 60);
+        const durationSec = rec.duration % 60;
+        const cameraName = cameraNames[rec.camera] || rec.camera;
+        
+        return `
+            <div class="recording-item ${currentRecording && currentRecording.id === rec.id ? 'selected' : ''}" 
+                 onclick="selectRecording('${rec.id}')"
+                 oncontextmenu="showContextMenu(event, '${rec.id}')">
+                <div class="recording-header">
+                    <span class="recording-camera">${cameraName}</span>
+                    <span class="recording-time">${dateStr} ${timeStr}</span>
+                </div>
+                <div class="recording-body">
+                    <div class="recording-meta">
+                        <span>⏱ ${durationMin}:${durationSec.toString().padStart(2,'0')}</span>
+                        <span>📊 ${sizeMB} MB</span>
+                        <span>⚡ ${rec.events?.length || 0} событий</span>
+                    </div>
+                    <div class="recording-events">
+                        ${rec.has_motion ? '<span class="event-tag motion">🚶 Движение</span>' : ''}
+                        ${rec.has_person ? '<span class="event-tag person">👤 Человек</span>' : ''}
+                        ${rec.has_car ? '<span class="event-tag car">🚗 Авто</span>' : ''}
+                        ${rec.has_qr ? '<span class="event-tag qr">📱 QR</span>' : ''}
+                        ${rec.has_lpr ? '<span class="event-tag lpr">🔢 Номер</span>' : ''}
+                        ${rec.has_perimeter ? '<span class="event-tag perimeter">📏 Периметр</span>' : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function updateStats() {
+    let totalSize = 0;
+    let totalDuration = 0;
+    let totalEvents = 0;
+    
+    filteredRecordings.forEach(rec => {
+        totalSize += rec.size;
+        totalDuration += rec.duration;
+        totalEvents += rec.events?.length || 0;
+    });
+    
+    document.getElementById('totalSize').textContent = (totalSize / (1024 * 1024)).toFixed(1) + ' MB';
+    document.getElementById('totalDuration').textContent = Math.floor(totalDuration / 3600) + ' ч';
+    document.getElementById('totalEvents').textContent = totalEvents;
+}
+
+// ===== ЭКСПОРТ СПИСКА =====
+function exportFilteredList() {
+    if (filteredRecordings.length === 0) {
+        showNotification('warning', 'Нет записей для экспорта');
+        return;
+    }
+    
+    let csv = 'Дата,Время,Камера,Длительность,Размер (MB),События\n';
+    
+    filteredRecordings.forEach(rec => {
+        const date = new Date(rec.start * 1000);
+        const dateStr = date.toLocaleDateString();
+        const timeStr = date.toLocaleTimeString();
+        const cameraName = cameraNames[rec.camera] || rec.camera;
+        const sizeMB = (rec.size / (1024 * 1024)).toFixed(1);
+        const durationMin = Math.floor(rec.duration / 60);
+        const durationSec = rec.duration % 60;
+        const durationStr = `${durationMin}:${durationSec.toString().padStart(2,'0')}`;
+        const events = rec.events?.length || 0;
+        
+        csv += `"${dateStr}","${timeStr}","${cameraName}","${durationStr}","${sizeMB}","${events}"\n`;
+    });
+    
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `recordings_${new Date().toISOString().slice(0,10)}.csv`;
+    link.click();
+}
+
+// ===== ПЛЕЕР =====
+function selectRecording(id) {
+    console.log('Selecting recording:', id);
+    
+    // Показываем индикатор загрузки
+    document.getElementById('videoLoading').style.display = 'block';
+    document.getElementById('noVideo').style.display = 'none';
+    document.getElementById('playerVideo').style.display = 'none';
+    
+    // Блокируем кнопки
+    disablePlayerButtons(true);
+    
+    fetch(`/api/recording/${id}`)
+        .then(r => {
+            if (!r.ok) {
+                throw new Error(`HTTP error ${r.status}`);
+            }
+            return r.json();
+        })
+        .then(data => {
+            if (data.success) {
+                currentRecording = data.metadata;
+                currentEvents = currentRecording.events || [];
+                
+                console.log('Recording metadata:', currentRecording);
+                console.log('Video URL:', data.url);
+                
+                document.getElementById('playerTitle').textContent = 'Просмотр записи';
+                document.getElementById('playerCamera').textContent = `Камера: ${cameraNames[currentRecording.camera_ip] || currentRecording.camera_ip}`;
+                document.getElementById('playerType').textContent = currentRecording.settings?.mode === 'continuous' ? 'Непрерывная' : 'По триггеру';
+                document.getElementById('playerType').className = 'player-type ' + (currentRecording.settings?.mode === 'continuous' ? '' : 'trigger');
+                document.getElementById('timeDuration').textContent = formatTime(currentRecording.duration);
+                document.getElementById('eventsCount').textContent = currentEvents.length;
+                
+                // Отображаем начальное абсолютное время
+                const startDate = new Date(currentRecording.start_time * 1000);
+                document.getElementById('recordingTime').textContent = startDate.toLocaleString();
+                
+                document.getElementById('noVideo').style.display = 'none';
+                
+                const video = document.getElementById('playerVideo');
+                video.src = data.url;
+                video.load();
+                
+                // Обработчики событий видео
+                video.oncanplay = function() {
+                    console.log('Video can play');
+                    document.getElementById('videoLoading').style.display = 'none';
+                    video.style.display = 'block';
+                    disablePlayerButtons(false);
+                    
+                    // Отрисовываем временные метки
+                    renderTimeMarkers();
+                };
+                
+                video.onerror = function(e) {
+                    console.error('Video error:', e);
+                    document.getElementById('videoLoading').style.display = 'none';
+                    document.getElementById('noVideo').style.display = 'block';
+                    showNotification('error', 'Ошибка загрузки видео');
+                    disablePlayerButtons(true);
+                };
+                
+                renderEventsList();
+                renderTimelineEvents();
+                
+                // Обновляем выделение в списке
+                renderRecordings();
+            } else {
+                throw new Error('Failed to load recording');
+            }
+        })
+        .catch(err => {
+            console.error('Error loading recording:', err);
+            document.getElementById('videoLoading').style.display = 'none';
+            document.getElementById('noVideo').style.display = 'block';
+            showNotification('error', 'Ошибка загрузки записи');
+            disablePlayerButtons(true);
+        });
+}
+
+function disablePlayerButtons(disabled) {
+    document.getElementById('playBtn').disabled = disabled;
+    document.querySelectorAll('.control-btn').forEach(btn => {
+        if (btn.id !== 'playBtn') {
+            btn.disabled = disabled;
+        }
+    });
+    document.getElementById('playbackSpeed').disabled = disabled;
+}
+
+function renderEventsList() {
+    const container = document.getElementById('eventsContainer');
+    
+    if (currentEvents.length === 0) {
+        container.innerHTML = '<div class="text-center p-2 text-muted">Нет событий</div>';
+        return;
+    }
+    
+    container.innerHTML = currentEvents.map((event, index) => {
+        const time = formatTime(event.time);
+        let icon, desc;
+        
+        switch(event.type) {
+            case 'motion': icon = '🚶'; desc = 'Движение'; break;
+            case 'person': icon = '👤'; desc = `Человек (${event.data?.confidence || '?'}%)`; break;
+            case 'car': icon = '🚗'; desc = `Авто (${event.data?.confidence || '?'}%)`; break;
+            case 'qr': icon = '📱'; desc = `QR: ${event.data?.code || ''}`; break;
+            case 'lpr': icon = '🔢'; desc = `${event.data?.plate || ''} (${event.data?.direction || ''})`; break;
+            case 'perimeter': icon = '📏'; desc = `Линия ${event.data?.line || ''} (${event.data?.direction || ''})`; break;
+            default: icon = '📌'; desc = event.type;
+        }
+        
+        return `
+            <div class="event-item" onclick="seekToTime(${event.time})">
+                <span class="event-time">${time}</span>
+                <span class="event-icon">${icon}</span>
+                <span class="event-desc">${desc}</span>
+            </div>
+        `;
+    }).join('');
+}
+
+function renderTimelineEvents() {
+    const timeline = document.getElementById('timelineEvents');
+    if (!currentRecording) return;
+    
+    const duration = currentRecording.duration;
+    const startTime = currentRecording.start_time;
+    
+    timeline.innerHTML = currentEvents.map(event => {
+        const left = (event.time / duration) * 100;
+        let color;
+        
+        switch(event.type) {
+            case 'motion': color = 'motion'; break;
+            case 'person': color = 'person'; break;
+            case 'car': color = 'car'; break;
+            case 'qr': color = 'qr'; break;
+            case 'lpr': color = 'lpr'; break;
+            case 'perimeter': color = 'perimeter'; break;
+            default: color = 'motion';
+        }
+        
+        // Вычисляем абсолютное время события
+        const eventAbsoluteTime = new Date((startTime + event.time) * 1000);
+        const timeStr = eventAbsoluteTime.toLocaleTimeString([], { 
+            hour: '2-digit', 
+            minute: '2-digit', 
+            second: '2-digit' 
+        });
+        
+        let tooltip = '';
+        if (event.type === 'qr') tooltip = `QR: ${event.data?.code}`;
+        else if (event.type === 'lpr') tooltip = `${event.data?.plate} (${event.data?.direction})`;
+        else if (event.type === 'person') tooltip = `Человек ${event.data?.confidence}%`;
+        else if (event.type === 'car') tooltip = `Авто ${event.data?.confidence}%`;
+        else if (event.type === 'perimeter') tooltip = `Линия ${event.data?.line}`;
+        else tooltip = event.type;
+        
+        return `
+            <div class="timeline-event ${color}" style="left: ${left}%;" onclick="seekToTime(${event.time})">
+                <span class="timeline-tooltip">${timeStr} - ${tooltip}</span>
+            </div>
+        `;
+    }).join('');
+}
+
+// ===== ОТОБРАЖЕНИЕ ВРЕМЕННЫХ МЕТОК =====
+function renderTimeMarkers() {
+    if (!currentRecording) return;
+    
+    const timeline = document.getElementById('timeline');
+    const markersContainer = document.getElementById('timelineTimeMarkers');
+    const duration = currentRecording.duration;
+    const startTime = currentRecording.start_time;
+    
+    // Очищаем контейнер
+    markersContainer.innerHTML = '';
+    
+    // Создаем 8 временных меток (равномерно распределенных)
+    const markerCount = 8;
+    for (let i = 0; i <= markerCount; i++) {
+        const position = (i / markerCount) * 100;
+        const timeSeconds = (i / markerCount) * duration;
+        
+        // Вычисляем абсолютное время
+        const absoluteTime = new Date((startTime + timeSeconds) * 1000);
+        const timeStr = absoluteTime.toLocaleTimeString([], { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            second: '2-digit'
+        });
+        
+        // Создаем метку (вертикальную линию)
+        const marker = document.createElement('div');
+        marker.className = 'timeline-time-marker';
+        marker.style.left = position + '%';
+        
+        // Создаем подпись со временем
+        const label = document.createElement('div');
+        label.className = 'timeline-time-label';
+        label.style.left = position + '%';
+        label.textContent = timeStr;
+        
+        markersContainer.appendChild(marker);
+        markersContainer.appendChild(label);
+    }
+}
+
+// Обновление текущего абсолютного времени
+function updateAbsoluteTime() {
+    if (!currentRecording) return;
+    
+    const video = document.getElementById('playerVideo');
+    const currentTime = video.currentTime || 0;
+    const startTime = currentRecording.start_time;
+    
+    const absoluteTime = new Date((startTime + currentTime) * 1000);
+    const timeStr = absoluteTime.toLocaleString([], { 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit',
+        day: '2-digit',
+        month: '2-digit'
+    });
+    
+    document.getElementById('recordingTime').textContent = timeStr;
+}
+
+// ===== УПРАВЛЕНИЕ ПЛЕЕРОМ =====
+function togglePlay() {
+    const video = document.getElementById('playerVideo');
+    const btn = document.getElementById('playBtn');
+    
+    if (video.paused) {
+        video.play();
+        btn.innerHTML = '<i class="bi bi-pause"></i>';
+    } else {
+        video.pause();
+        btn.innerHTML = '<i class="bi bi-play"></i>';
+    }
+}
+
+function skipBackward() {
+    const video = document.getElementById('playerVideo');
+    video.currentTime = Math.max(0, video.currentTime - 10);
+}
+
+function skipForward() {
+    const video = document.getElementById('playerVideo');
+    video.currentTime = Math.min(video.duration, video.currentTime + 10);
+}
+
+function seekVideo(event) {
+    const timeline = document.getElementById('timeline');
+    const rect = timeline.getBoundingClientRect();
+    const pos = (event.clientX - rect.left) / rect.width;
+    const video = document.getElementById('playerVideo');
+    video.currentTime = pos * video.duration;
+}
+
+function seekToTime(time) {
+    const video = document.getElementById('playerVideo');
+    video.currentTime = time;
+}
+
+function prevEvent() {
+    if (currentEvents.length === 0) return;
+    const video = document.getElementById('playerVideo');
+    const currentTime = video.currentTime;
+    
+    let prevIndex = -1;
+    for (let i = currentEvents.length - 1; i >= 0; i--) {
+        if (currentEvents[i].time < currentTime - 0.5) {
+            prevIndex = i;
+            break;
+        }
+    }
+    
+    if (prevIndex !== -1) {
+        seekToTime(currentEvents[prevIndex].time);
+    }
+}
+
+function nextEvent() {
+    if (currentEvents.length === 0) return;
+    const video = document.getElementById('playerVideo');
+    const currentTime = video.currentTime;
+    
+    let nextIndex = -1;
+    for (let i = 0; i < currentEvents.length; i++) {
+        if (currentEvents[i].time > currentTime + 0.5) {
+            nextIndex = i;
+            break;
+        }
+    }
+    
+    if (nextIndex !== -1) {
+        seekToTime(currentEvents[nextIndex].time);
+    }
+}
+
+function changeSpeed() {
+    const speed = document.getElementById('playbackSpeed').value;
+    const video = document.getElementById('playerVideo');
+    video.playbackRate = parseFloat(speed);
+}
+
+// Обновление времени видео
+document.getElementById('playerVideo').addEventListener('timeupdate', function() {
+    const current = this.currentTime;
+    const duration = this.duration || 0;
+    const progress = (current / duration) * 100;
+    
+    document.getElementById('timelineProgress').style.width = progress + '%';
+    document.getElementById('timeCurrent').textContent = formatTime(current);
+    
+    // Обновляем абсолютное время
+    updateAbsoluteTime();
+});
+
+// ===== СНИМКИ =====
+function takeSnapshot() {
+    if (!currentRecording) {
+        showNotification('warning', 'Сначала выберите запись');
+        return;
+    }
+    
+    const video = document.getElementById('playerVideo');
+    if (video.readyState < 2) {
+        showNotification('warning', 'Видео еще не загружено');
+        return;
+    }
+    
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth || 1920;
+    canvas.height = video.videoHeight || 1080;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    canvas.toBlob(blob => {
+        currentSnapshotBlob = blob;
+        
+        const url = URL.createObjectURL(blob);
+        document.getElementById('previewImage').src = url;
+        
+        // Показываем модальное окно с выбранным снимком
+        document.querySelector('input[name="telegramType"][value="snapshot"]').checked = true;
+        document.getElementById('videoOptions').style.display = 'none';
+        document.getElementById('snapshotPreview').style.display = 'block';
+        
+        new bootstrap.Modal(document.getElementById('telegramModal')).show();
+        
+        showNotification('success', `Снимок готов (${(blob.size/1024).toFixed(1)} KB)`);
+    }, 'image/jpeg', 0.9);
+}
+
+// ===== ЭКСПОРТ =====
+function exportVideo() {
+    if (!currentRecording) {
+        showNotification('warning', 'Сначала выберите запись');
+        return;
+    }
+    
+    window.open(`/api/recording/${currentRecording.recording_id}/download`, '_blank');
+}
+
+// ===== TELEGRAM =====
+function showTelegramModal() {
+    if (!currentRecording) {
+        showNotification('warning', 'Сначала выберите запись');
+        return;
+    }
+    
+    // Сбрасываем настройки
+    document.querySelector('input[name="telegramType"][value="video"]').checked = true;
+    document.getElementById('videoOptions').style.display = 'block';
+    document.getElementById('snapshotPreview').style.display = 'none';
+    document.getElementById('telegramCaption').value = `📹 Запись с камеры ${currentRecording.camera_ip}`;
+    
+    new bootstrap.Modal(document.getElementById('telegramModal')).show();
+}
+
+function sendToTelegram() {
+    const type = document.querySelector('input[name="telegramType"]:checked').value;
+    const caption = document.getElementById('telegramCaption').value;
+    const chatId = document.getElementById('telegramChatId').value;
+    const quality = document.getElementById('videoQuality').value;
+    
+    showNotification('info', 'Отправка в Telegram...');
+    
+    if (type === 'snapshot' && currentSnapshotBlob) {
+        // Отправка снимка
+        const reader = new FileReader();
+        reader.onloadend = function() {
+            fetch('/api/send_telegram_photo', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    photo: reader.result.split(',')[1],
+                    caption: caption,
+                    chat_id: chatId || undefined
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('success', '✅ Снимок отправлен');
+                    bootstrap.Modal.getInstance(document.getElementById('telegramModal')).hide();
+                } else {
+                    showNotification('error', `❌ Ошибка: ${data.error}`);
+                }
+            });
+        };
+        reader.readAsDataURL(currentSnapshotBlob);
+        
+    } else if (type === 'video') {
+        // Отправка видео
+        let url = `/api/recording/${currentRecording.recording_id}/download`;
+        if (quality !== 'original') {
+            url += `?quality=${quality}`;
+        }
+        window.open(url, '_blank');
+    }
+}
+
+// ===== КОНТЕКСТНОЕ МЕНЮ =====
+function showContextMenu(event, id) {
+    event.preventDefault();
+    contextMenuRecording = id;
+    
+    const menu = document.getElementById('contextMenu');
+    menu.style.display = 'block';
+    menu.style.left = event.pageX + 'px';
+    menu.style.top = event.pageY + 'px';
+}
+
+function playFromContext() {
+    if (contextMenuRecording) {
+        selectRecording(contextMenuRecording);
+        document.getElementById('contextMenu').style.display = 'none';
+    }
+}
+
+function downloadFromContext() {
+    if (contextMenuRecording) {
+        window.open(`/api/recording/${contextMenuRecording}/download`, '_blank');
+        document.getElementById('contextMenu').style.display = 'none';
+    }
+}
+
+function deleteFromContext() {
+    if (contextMenuRecording && confirm('Удалить эту запись?')) {
+        // Здесь будет API для удаления
+        showNotification('info', 'Функция удаления в разработке');
+        document.getElementById('contextMenu').style.display = 'none';
+    }
+}
+
+function deleteRecording() {
+    if (currentRecording && confirm('Удалить эту запись?')) {
+        showNotification('info', 'Функция удаления в разработке');
+    }
+}
+
+// ===== ОБНОВЛЕНИЕ СПИСКА =====
+function refreshRecordings() {
+    showNotification('info', 'Обновление списка записей...');
+    loadRecordings();
+}
+
+// ===== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =====
+function formatTime(seconds) {
+    if (!seconds && seconds !== 0) return '00:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
+function showNotification(type, message) {
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.innerHTML = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 3000);
+}
+</script>
+{% endblock %}

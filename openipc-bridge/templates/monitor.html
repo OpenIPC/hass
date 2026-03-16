@@ -1,0 +1,868 @@
+{% extends "base.html" %}
+{% block nav_monitor %}active{% endblock %}
+{% block title %}Мониторинг камер{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ===== ОСНОВНЫЕ СТИЛИ ===== */
+    .monitor-container {
+        display: flex;
+        gap: 20px;
+        height: calc(100vh - 150px);
+        min-height: 700px;
+    }
+    
+    /* ===== ЛЕВАЯ ПАНЕЛЬ - СТАТИСТИКА ===== */
+    .stats-panel {
+        width: 300px;
+        background: #1a1a1a;
+        border-radius: 10px;
+        padding: 15px;
+        color: #fff;
+        overflow-y: auto;
+    }
+    
+    .panel-title {
+        font-size: 18px;
+        font-weight: bold;
+        color: #0d6efd;
+        margin-bottom: 15px;
+        border-bottom: 1px solid #444;
+        padding-bottom: 8px;
+    }
+    
+    .stats-card {
+        background: #2d2d2d;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .stats-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+        padding: 5px 0;
+        border-bottom: 1px solid #444;
+    }
+    
+    .stats-label {
+        color: #aaa;
+        font-size: 13px;
+    }
+    
+    .stats-value {
+        color: #0d6efd;
+        font-weight: bold;
+        font-size: 16px;
+    }
+    
+    .progress {
+        height: 10px;
+        background: #333;
+        border-radius: 5px;
+        margin: 10px 0;
+        display: flex;
+    }
+    
+    .progress-bar {
+        height: 100%;
+        transition: width 0.3s;
+    }
+    
+    .progress-bar.healthy {
+        background: #28a745;
+    }
+    
+    .progress-bar.warning {
+        background: #ffc107;
+    }
+    
+    .progress-bar.unhealthy {
+        background: #dc3545;
+    }
+    
+    .info-card {
+        background: #2d2d2d;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 20px;
+        border-left: 4px solid #17a2b8;
+    }
+    
+    .info-title {
+        font-size: 14px;
+        font-weight: bold;
+        color: #17a2b8;
+        margin-bottom: 10px;
+    }
+    
+    .info-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .info-list li {
+        margin-bottom: 8px;
+        font-size: 12px;
+        color: #ccc;
+    }
+    
+    .info-list i {
+        margin-right: 5px;
+        color: #28a745;
+    }
+    
+    /* ===== ПРАВАЯ ПАНЕЛЬ - ТАБЫ ===== */
+    .monitor-panel {
+        flex: 1;
+        background: #1a1a1a;
+        border-radius: 10px;
+        padding: 20px;
+        color: #fff;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    
+    .nav-tabs {
+        border-bottom: 1px solid #444;
+    }
+    
+    .nav-tabs .nav-link {
+        color: #aaa;
+        border: none;
+        padding: 10px 20px;
+    }
+    
+    .nav-tabs .nav-link:hover {
+        color: #fff;
+        border: none;
+    }
+    
+    .nav-tabs .nav-link.active {
+        color: #0d6efd;
+        background: transparent;
+        border-bottom: 2px solid #0d6efd;
+    }
+    
+    .tab-content {
+        flex: 1;
+        overflow: auto;
+        margin-top: 20px;
+    }
+    
+    /* ===== ТАБЛИЦА МОНИТОРИНГА ===== */
+    .monitor-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    
+    .monitor-title {
+        font-size: 20px;
+        font-weight: bold;
+        color: #0d6efd;
+    }
+    
+    .refresh-btn {
+        background: #333;
+        border: 1px solid #444;
+        color: white;
+        padding: 8px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .refresh-btn:hover {
+        background: #0d6efd;
+        transform: translateY(-2px);
+    }
+    
+    .table-container {
+        flex: 1;
+        overflow-y: auto;
+        margin-top: 10px;
+    }
+    
+    .monitor-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .monitor-table th {
+        position: sticky;
+        top: 0;
+        background: #2d2d2d;
+        color: #0d6efd;
+        font-size: 12px;
+        font-weight: bold;
+        padding: 10px;
+        text-align: left;
+        border-bottom: 2px solid #444;
+    }
+    
+    .monitor-table td {
+        padding: 10px;
+        border-bottom: 1px solid #333;
+        font-size: 12px;
+    }
+    
+    .monitor-table tr:hover {
+        background: #2d2d2d;
+    }
+    
+    .status-badge {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: bold;
+    }
+    
+    .status-healthy {
+        background: #28a745;
+        color: white;
+    }
+    
+    .status-warning {
+        background: #ffc107;
+        color: #000;
+    }
+    
+    .status-unhealthy {
+        background: #dc3545;
+        color: white;
+    }
+    
+    .ssh-badge {
+        display: inline-block;
+        padding: 2px 6px;
+        border-radius: 10px;
+        font-size: 10px;
+    }
+    
+    .ssh-available {
+        background: #28a745;
+        color: white;
+    }
+    
+    .ssh-unavailable {
+        background: #6c757d;
+        color: white;
+    }
+    
+    .action-btn {
+        background: transparent;
+        border: 1px solid #444;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 11px;
+        margin: 0 2px;
+        transition: all 0.2s;
+    }
+    
+    .action-btn:hover {
+        background: #0d6efd;
+    }
+    
+    .action-btn.restart:hover {
+        background: #ffc107;
+        color: #000;
+    }
+    
+    .action-btn.history:hover {
+        background: #17a2b8;
+    }
+    
+    /* ===== ОТЧЕТЫ ===== */
+    .reports-container {
+        overflow-y: auto;
+        padding: 10px;
+    }
+    
+    .report-card {
+        background: #2d2d2d;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+        border-left: 4px solid #0d6efd;
+    }
+    
+    .report-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+        padding-bottom: 5px;
+        border-bottom: 1px solid #444;
+    }
+    
+    .report-time {
+        color: #0d6efd;
+        font-weight: bold;
+    }
+    
+    .report-stats {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .report-stat {
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+    }
+    
+    .report-stat.healthy {
+        background: #28a745;
+    }
+    
+    .report-stat.warning {
+        background: #ffc107;
+        color: #000;
+    }
+    
+    .report-stat.unhealthy {
+        background: #dc3545;
+    }
+    
+    .report-content {
+        font-family: monospace;
+        font-size: 11px;
+        white-space: pre-wrap;
+        color: #ccc;
+        max-height: 200px;
+        overflow-y: auto;
+        padding: 10px;
+        background: #1a1a1a;
+        border-radius: 5px;
+    }
+    
+    .send-report-btn {
+        background: #0088cc;
+        border: none;
+        color: white;
+        padding: 8px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: all 0.2s;
+        margin-bottom: 15px;
+    }
+    
+    .send-report-btn:hover {
+        background: #006699;
+        transform: translateY(-2px);
+    }
+    
+    /* ===== МОДАЛЬНОЕ ОКНО ИСТОРИИ ===== */
+    .modal-content {
+        background: #2d2d2d;
+        color: white;
+    }
+    
+    .modal-header {
+        border-bottom: 1px solid #444;
+    }
+    
+    .modal-footer {
+        border-top: 1px solid #444;
+    }
+    
+    .error-history {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    
+    .error-item {
+        background: #333;
+        border-left: 3px solid #dc3545;
+        padding: 10px;
+        margin-bottom: 8px;
+        border-radius: 4px;
+    }
+    
+    .error-time {
+        font-size: 11px;
+        color: #aaa;
+        margin-bottom: 4px;
+    }
+    
+    .error-message {
+        font-size: 12px;
+        color: #ff6b6b;
+        font-family: monospace;
+    }
+    
+    /* ===== УВЕДОМЛЕНИЯ ===== */
+    .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        min-width: 300px;
+        background: #28a745;
+        color: white;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+        z-index: 9999;
+        animation: slideIn 0.3s;
+    }
+    
+    .notification.error {
+        background: #dc3545;
+    }
+    
+    .notification.warning {
+        background: #ffc107;
+        color: #000;
+    }
+    
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    /* ===== ЗАГРУЗЧИК ===== */
+    .loading-spinner {
+        display: inline-block;
+        width: 30px;
+        height: 30px;
+        border: 3px solid rgba(255,255,255,.3);
+        border-radius: 50%;
+        border-top-color: #0d6efd;
+        animation: spin 1s ease-in-out infinite;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    
+    /* ===== АДАПТИВНОСТЬ ===== */
+    @media (max-width: 1200px) {
+        .monitor-container {
+            flex-direction: column;
+            height: auto;
+        }
+        
+        .stats-panel {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="monitor-container">
+    <!-- ЛЕВАЯ ПАНЕЛЬ - СТАТИСТИКА -->
+    <div class="stats-panel">
+        <div class="panel-title">
+            <i class="bi bi-bar-chart"></i> Статистика
+        </div>
+        
+        <div class="stats-card">
+            <div class="stats-row">
+                <span class="stats-label">Всего камер:</span>
+                <span class="stats-value" id="totalCameras">0</span>
+            </div>
+            <div class="stats-row">
+                <span class="stats-label">✅ Здоровых:</span>
+                <span class="stats-value" id="healthyCameras">0</span>
+            </div>
+            <div class="stats-row">
+                <span class="stats-label">⚠️ С предупреждениями:</span>
+                <span class="stats-value" id="warningCameras">0</span>
+            </div>
+            <div class="stats-row">
+                <span class="stats-label">❌ Проблемных:</span>
+                <span class="stats-value" id="unhealthyCameras">0</span>
+            </div>
+            <div class="stats-row">
+                <span class="stats-label">🔄 Перезапусков:</span>
+                <span class="stats-value" id="totalRestarts">0</span>
+            </div>
+            
+            <div class="progress">
+                <div class="progress-bar healthy" id="healthProgress" style="width: 0%"></div>
+                <div class="progress-bar warning" id="warningProgress" style="width: 0%"></div>
+                <div class="progress-bar unhealthy" id="unhealthProgress" style="width: 0%"></div>
+            </div>
+        </div>
+        
+        <div class="info-card">
+            <div class="info-title">
+                <i class="bi bi-info-circle"></i> О мониторинге
+            </div>
+            <ul class="info-list">
+                <li><i class="bi bi-check-circle"></i> Проверка RTSP порта (554)</li>
+                <li><i class="bi bi-check-circle"></i> Проверка метрик majestic</li>
+                <li><i class="bi bi-check-circle"></i> Мониторинг температуры и FPS</li>
+                <li><i class="bi bi-check-circle"></i> Проверка SSH доступности</li>
+                <li><i class="bi bi-arrow-repeat"></i> Автоперезапуск при 3 ошибках</li>
+                <li><i class="bi bi-telegram"></i> Ежедневный отчет в Telegram в 21:00</li>
+            </ul>
+        </div>
+        
+        <div class="info-card">
+            <div class="info-title">
+                <i class="bi bi-shield-check"></i> Статусы
+            </div>
+            <ul class="info-list">
+                <li><span class="status-badge status-healthy">Healthy</span> - всё работает</li>
+                <li><span class="status-badge status-warning">Warning</span> - метрики не доступны</li>
+                <li><span class="status-badge status-unhealthy">Unhealthy</span> - RTSP не работает</li>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- ПРАВАЯ ПАНЕЛЬ - ТАБЫ -->
+    <div class="monitor-panel">
+        <ul class="nav nav-tabs" id="monitorTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="monitor-tab" data-bs-toggle="tab" data-bs-target="#monitor" type="button" role="tab">
+                    <i class="bi bi-camera-video"></i> Мониторинг
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="reports-tab" data-bs-toggle="tab" data-bs-target="#reports" type="button" role="tab">
+                    <i class="bi bi-file-text"></i> Отчеты
+                </button>
+            </li>
+        </ul>
+        
+        <div class="tab-content" id="monitorTabContent">
+            <!-- ВКЛАДКА МОНИТОРИНГА -->
+            <div class="tab-pane fade show active" id="monitor" role="tabpanel">
+                <div class="monitor-header">
+                    <span class="monitor-title">
+                        <i class="bi bi-camera-video"></i> Состояние камер
+                    </span>
+                    <button class="refresh-btn" onclick="refreshStatus()">
+                        <i class="bi bi-arrow-repeat"></i> Обновить
+                    </button>
+                </div>
+                
+                <div class="table-container">
+                    <table class="monitor-table" id="monitorTable">
+                        <thead>
+                            <tr>
+                                <th>IP</th>
+                                <th>Статус</th>
+                                <th>SSH</th>
+                                <th>Сбои</th>
+                                <th>Рестарты</th>
+                                <th>Последняя проверка</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="monitorBody">
+                            <tr>
+                                <td colspan="7" class="text-center">
+                                    <div class="loading-spinner"></div>
+                                    <p class="mt-2">Загрузка данных...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- ВКЛАДКА ОТЧЕТОВ -->
+            <div class="tab-pane fade" id="reports" role="tabpanel">
+                <div class="monitor-header">
+                    <span class="monitor-title">
+                        <i class="bi bi-file-text"></i> История отчетов
+                    </span>
+                    <button class="send-report-btn" onclick="sendReportNow()">
+                        <i class="bi bi-send"></i> Отправить отчет сейчас
+                    </button>
+                </div>
+                
+                <div class="reports-container" id="reportsContainer">
+                    <div class="text-center">
+                        <div class="loading-spinner"></div>
+                        <p class="mt-2">Загрузка отчетов...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно истории ошибок -->
+<div class="modal fade" id="historyModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="historyModalTitle">История ошибок</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="errorHistory" class="error-history">
+                    <!-- Загружается через JS -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// ===== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ =====
+let monitors = {};
+let currentCamera = null;
+
+// ===== ИНИЦИАЛИЗАЦИЯ =====
+document.addEventListener('DOMContentLoaded', function() {
+    refreshStatus();
+    loadReports();
+    // Обновляем каждые 10 секунд
+    setInterval(refreshStatus, 10000);
+});
+
+// ===== ЗАГРУЗКА СТАТУСА =====
+function refreshStatus() {
+    fetch('/api/camera_monitor/status')
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                monitors = data.monitors || {};
+                renderMonitorTable();
+                updateStats(data);
+            } else {
+                showNotification('error', 'Ошибка загрузки данных');
+            }
+        })
+        .catch(err => {
+            console.error('Error loading monitor status:', err);
+            showNotification('error', 'Ошибка загрузки данных');
+        });
+}
+
+// ===== ОТОБРАЖЕНИЕ ТАБЛИЦЫ =====
+function renderMonitorTable() {
+    const tbody = document.getElementById('monitorBody');
+    
+    if (Object.keys(monitors).length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">Нет активных мониторов</td></tr>';
+        return;
+    }
+    
+    let html = '';
+    for (const [ip, mon] of Object.entries(monitors)) {
+        const statusClass = mon.status === 'healthy' ? 'status-healthy' : 
+                           (mon.status === 'warning' ? 'status-warning' : 'status-unhealthy');
+        const sshClass = mon.ssh_available ? 'ssh-available' : 'ssh-unavailable';
+        const sshText = mon.ssh_available ? '✅' : '❌';
+        const lastCheck = mon.last_check ? new Date(mon.last_check).toLocaleString() : '—';
+        
+        html += `
+            <tr>
+                <td><strong>${ip}</strong></td>
+                <td><span class="status-badge ${statusClass}">${mon.status}</span></td>
+                <td><span class="ssh-badge ${sshClass}">${sshText}</span></td>
+                <td>${mon.failures}/3</td>
+                <td>${mon.restart_count}</td>
+                <td>${lastCheck}</td>
+                <td>
+                    <button class="action-btn history" onclick="showHistory('${ip}')" title="История ошибок">
+                        <i class="bi bi-clock-history"></i>
+                    </button>
+                    <button class="action-btn restart" onclick="restartCamera('${ip}')" title="Перезапустить majestic">
+                        <i class="bi bi-arrow-repeat"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    }
+    
+    tbody.innerHTML = html;
+}
+
+// ===== ОБНОВЛЕНИЕ СТАТИСТИКИ =====
+function updateStats(data) {
+    const total = data.total || 0;
+    let healthy = 0;
+    let warning = 0;
+    let unhealthy = 0;
+    let totalRestarts = 0;
+    
+    for (const mon of Object.values(monitors)) {
+        if (mon.status === 'healthy') {
+            healthy++;
+        } else if (mon.status === 'warning') {
+            warning++;
+        } else {
+            unhealthy++;
+        }
+        totalRestarts += mon.restart_count || 0;
+    }
+    
+    document.getElementById('totalCameras').textContent = total;
+    document.getElementById('healthyCameras').textContent = healthy;
+    document.getElementById('warningCameras').textContent = warning;
+    document.getElementById('unhealthyCameras').textContent = unhealthy;
+    document.getElementById('totalRestarts').textContent = totalRestarts;
+    
+    // Обновляем прогресс-бар
+    const healthPercent = total > 0 ? (healthy / total) * 100 : 0;
+    const warningPercent = total > 0 ? (warning / total) * 100 : 0;
+    const unhealthPercent = total > 0 ? (unhealthy / total) * 100 : 0;
+    
+    document.getElementById('healthProgress').style.width = healthPercent + '%';
+    document.getElementById('warningProgress').style.width = warningPercent + '%';
+    document.getElementById('unhealthProgress').style.width = unhealthPercent + '%';
+}
+
+// ===== ПОКАЗ ИСТОРИИ ОШИБОК =====
+function showHistory(ip) {
+    currentCamera = ip;
+    const monitor = monitors[ip];
+    
+    if (!monitor) return;
+    
+    document.getElementById('historyModalTitle').textContent = `История ошибок - ${ip}`;
+    
+    const historyDiv = document.getElementById('errorHistory');
+    
+    if (monitor.error_history && monitor.error_history.length > 0) {
+        let html = '';
+        monitor.error_history.forEach(err => {
+            html += `
+                <div class="error-item">
+                    <div class="error-time">${err.time}</div>
+                    <div class="error-message">${err.error}</div>
+                </div>
+            `;
+        });
+        historyDiv.innerHTML = html;
+    } else {
+        historyDiv.innerHTML = '<p class="text-muted text-center">Нет ошибок</p>';
+    }
+    
+    new bootstrap.Modal(document.getElementById('historyModal')).show();
+}
+
+// ===== ПЕРЕЗАПУСК КАМЕРЫ =====
+function restartCamera(ip) {
+    if (!confirm(`Перезапустить majestic на камере ${ip}?`)) {
+        return;
+    }
+    
+    showNotification('info', `Отправка команды перезапуска на ${ip}...`);
+    
+    fetch(`/api/camera_monitor/restart/${ip}`, {
+        method: 'POST'
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('success', `✅ Команда перезапуска отправлена на ${ip}`);
+            setTimeout(refreshStatus, 3000);
+        } else {
+            showNotification('error', `❌ Ошибка: ${data.error || 'Неизвестная ошибка'}`);
+        }
+    })
+    .catch(err => {
+        console.error('Error restarting camera:', err);
+        showNotification('error', '❌ Ошибка при отправке команды');
+    });
+}
+
+// ===== ЗАГРУЗКА ОТЧЕТОВ =====
+function loadReports() {
+    fetch('/api/camera_monitor/reports?limit=10')
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                renderReports(data.reports);
+            } else {
+                document.getElementById('reportsContainer').innerHTML = '<p class="text-muted text-center">Ошибка загрузки отчетов</p>';
+            }
+        })
+        .catch(err => {
+            console.error('Error loading reports:', err);
+            document.getElementById('reportsContainer').innerHTML = '<p class="text-muted text-center">Ошибка загрузки отчетов</p>';
+        });
+}
+
+function renderReports(reports) {
+    const container = document.getElementById('reportsContainer');
+    
+    if (!reports || reports.length === 0) {
+        container.innerHTML = '<p class="text-muted text-center">Нет сохраненных отчетов</p>';
+        return;
+    }
+    
+    let html = '';
+    reports.forEach(report => {
+        const stats = report.stats || {};
+        const time = new Date(report.time).toLocaleString();
+        
+        html += `
+            <div class="report-card">
+                <div class="report-header">
+                    <span class="report-time">${time}</span>
+                    <div class="report-stats">
+                        <span class="report-stat healthy">✅ ${stats.healthy || 0}</span>
+                        <span class="report-stat warning">⚠️ ${stats.warning || 0}</span>
+                        <span class="report-stat unhealthy">❌ ${stats.unhealthy || 0}</span>
+                    </div>
+                </div>
+                <div class="report-content">${report.report}</div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+// ===== ОТПРАВКА ОТЧЕТА СЕЙЧАС =====
+function sendReportNow() {
+    showNotification('info', '📊 Формирование и отправка отчета...');
+    
+    fetch('/api/camera_monitor/send_report', {method: 'POST'})
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('success', '✅ Отчет отправлен в Telegram');
+                setTimeout(loadReports, 2000);
+            } else {
+                showNotification('error', '❌ Ошибка: ' + (data.error || 'Неизвестная ошибка'));
+            }
+        })
+        .catch(err => {
+            console.error('Error sending report:', err);
+            showNotification('error', '❌ Ошибка при отправке отчета');
+        });
+}
+
+// ===== УВЕДОМЛЕНИЯ =====
+function showNotification(type, message) {
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.innerHTML = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 3000);
+}
+</script>
+{% endblock %}

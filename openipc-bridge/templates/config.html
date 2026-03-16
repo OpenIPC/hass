@@ -1,366 +1,1619 @@
 {% extends "base.html" %}
 {% block nav_cameras %}active{% endblock %}
-{% block title %}Настройка камер{% endblock %}
+{% block title %}Настройка камер и записи{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ===== ОСНОВНЫЕ СТИЛИ ===== */
+    .settings-container {
+        display: flex;
+        gap: 20px;
+        height: calc(100vh - 150px);
+        min-height: 700px;
+    }
+    
+    /* ===== ЛЕВАЯ ПАНЕЛЬ - СПИСОК КАМЕР ===== */
+    .cameras-panel {
+        width: 320px;
+        background: #1a1a1a;
+        border-radius: 10px;
+        padding: 15px;
+        color: #fff;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .panel-title {
+        font-size: 18px;
+        font-weight: bold;
+        color: #0d6efd;
+        margin-bottom: 15px;
+        border-bottom: 1px solid #444;
+        padding-bottom: 8px;
+    }
+    
+    .camera-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .camera-item {
+        display: flex;
+        align-items: center;
+        padding: 12px;
+        margin-bottom: 8px;
+        background: #2d2d2d;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        border-left: 4px solid transparent;
+    }
+    
+    .camera-item:hover {
+        background: #3d3d3d;
+        transform: translateX(5px);
+    }
+    
+    .camera-item.selected {
+        border-left-color: #0d6efd;
+        background: #3d3d3d;
+    }
+    
+    .camera-status {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        margin-right: 12px;
+    }
+    
+    .status-online {
+        background: #28a745;
+        box-shadow: 0 0 5px #28a745;
+    }
+    
+    .status-offline {
+        background: #dc3545;
+    }
+    
+    .camera-info {
+        flex: 1;
+    }
+    
+    .camera-name {
+        font-weight: bold;
+        font-size: 14px;
+    }
+    
+    .camera-ip {
+        font-size: 11px;
+        color: #aaa;
+    }
+    
+    .camera-type {
+        font-size: 10px;
+        padding: 2px 6px;
+        background: #444;
+        border-radius: 3px;
+        margin-left: 8px;
+    }
+    
+    .recording-badge {
+        font-size: 10px;
+        padding: 2px 6px;
+        border-radius: 3px;
+        margin-left: 5px;
+    }
+    
+    .badge-continuous {
+        background: #28a745;
+    }
+    
+    .badge-motion {
+        background: #ffc107;
+        color: #000;
+    }
+    
+    .badge-disabled {
+        background: #6c757d;
+    }
+    
+    /* ===== ПРАВАЯ ПАНЕЛЬ - НАСТРОЙКИ ===== */
+    .settings-panel {
+        flex: 1;
+        background: #1a1a1a;
+        border-radius: 10px;
+        padding: 20px;
+        color: #fff;
+        overflow-y: auto;
+    }
+    
+    .settings-tabs {
+        display: flex;
+        gap: 5px;
+        margin-bottom: 20px;
+        border-bottom: 1px solid #444;
+        flex-wrap: wrap;
+    }
+    
+    .settings-tab {
+        padding: 10px 20px;
+        background: transparent;
+        border: none;
+        color: #aaa;
+        cursor: pointer;
+        border-bottom: 3px solid transparent;
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+    
+    .settings-tab:hover {
+        color: #fff;
+    }
+    
+    .settings-tab.active {
+        color: #0d6efd;
+        border-bottom-color: #0d6efd;
+    }
+    
+    .tab-content {
+        display: none;
+    }
+    
+    .tab-content.active {
+        display: block;
+    }
+    
+    .settings-card {
+        background: #2d2d2d;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .card-title {
+        font-size: 16px;
+        font-weight: bold;
+        color: #0d6efd;
+        margin-bottom: 15px;
+        border-bottom: 1px solid #444;
+        padding-bottom: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .config-section {
+        margin-bottom: 20px;
+        padding: 15px;
+        background: #333;
+        border-radius: 6px;
+    }
+    
+    .config-section-title {
+        font-size: 14px;
+        font-weight: bold;
+        color: #0d6efd;
+        margin-bottom: 12px;
+        border-bottom: 1px solid #444;
+        padding-bottom: 5px;
+    }
+    
+    .config-row {
+        display: flex;
+        margin-bottom: 12px;
+        align-items: center;
+    }
+    
+    .config-label {
+        width: 140px;
+        font-size: 13px;
+        color: #ccc;
+    }
+    
+    .config-value {
+        flex: 1;
+    }
+    
+    .config-input {
+        width: 100%;
+        background: #444;
+        border: 1px solid #555;
+        color: white;
+        padding: 8px 12px;
+        border-radius: 5px;
+        font-size: 13px;
+    }
+    
+    .config-input:focus {
+        border-color: #0d6efd;
+        outline: none;
+    }
+    
+    .config-select {
+        width: 100%;
+        background: #444;
+        border: 1px solid #555;
+        color: white;
+        padding: 8px 12px;
+        border-radius: 5px;
+        font-size: 13px;
+    }
+    
+    .config-checkbox {
+        width: 18px;
+        height: 18px;
+        margin-right: 8px;
+        cursor: pointer;
+    }
+    
+    .config-badge {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 3px;
+        font-size: 11px;
+        margin-left: 5px;
+    }
+    
+    .btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 13px;
+        transition: all 0.2s;
+    }
+    
+    .btn-primary {
+        background: #0d6efd;
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background: #0b5ed7;
+    }
+    
+    .btn-success {
+        background: #28a745;
+        color: white;
+    }
+    
+    .btn-success:hover {
+        background: #218838;
+    }
+    
+    .btn-danger {
+        background: #dc3545;
+        color: white;
+    }
+    
+    .btn-danger:hover {
+        background: #bb2d3b;
+    }
+    
+    .btn-warning {
+        background: #ffc107;
+        color: #000;
+    }
+    
+    .btn-warning:hover {
+        background: #e0a800;
+    }
+    
+    .btn-info {
+        background: #17a2b8;
+        color: white;
+    }
+    
+    .btn-info:hover {
+        background: #138496;
+    }
+    
+    .btn-sm {
+        padding: 4px 8px;
+        font-size: 11px;
+    }
+    
+    .btn-group {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+        flex-wrap: wrap;
+    }
+    
+    .import-panel {
+        background: #2d2d2d;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 20px;
+    }
+    
+    .import-status {
+        background: #1e1e1e;
+        color: #0f0;
+        padding: 10px;
+        border-radius: 5px;
+        font-family: monospace;
+        font-size: 12px;
+        margin-top: 10px;
+        max-height: 150px;
+        overflow-y: auto;
+    }
+    
+    .loading-spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(255,255,255,.3);
+        border-radius: 50%;
+        border-top-color: #fff;
+        animation: spin 1s ease-in-out infinite;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    
+    /* Предупреждение о нагрузке */
+    .warning-card {
+        background: #ffc107;
+        color: #000;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        border-left: 4px solid #dc3545;
+    }
+    
+    .warning-card i {
+        font-size: 24px;
+        margin-right: 10px;
+    }
+    
+    /* Системная информация */
+    .system-info {
+        background: #2d2d2d;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 20px;
+        border-left: 4px solid #17a2b8;
+    }
+    
+    .system-info-title {
+        font-size: 14px;
+        font-weight: bold;
+        color: #17a2b8;
+        margin-bottom: 10px;
+    }
+    
+    .system-info-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        font-size: 12px;
+    }
+    
+    .system-info-label {
+        color: #aaa;
+    }
+    
+    .system-info-value {
+        color: #fff;
+        font-weight: bold;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-12">
-        <h2><i class="bi bi-camera"></i> Настройка камер</h2>
-        <p class="text-muted">Управление подключенными камерами</p>
-    </div>
-</div>
-
-<!-- Импорт из Home Assistant -->
-<div class="row mb-4">
-    <div class="col-md-12">
-        <div class="card border-success">
-            <div class="card-header bg-success text-white">
-                <i class="bi bi-cloud-download"></i> Импорт из Home Assistant
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-8">
-                        <p class="mb-3">
-                            <i class="bi bi-info-circle"></i>
-                            Автоматически импортировать камеры из интеграции <strong>OpenIPC</strong> в Home Assistant.
-                            Камеры будут добавлены с правильными настройками в зависимости от типа:
-                        </p>
-                        <ul class="mb-3">
-                            <li><span class="badge bg-primary">OpenIPC</span> - стандартные IP-камеры</li>
-                            <li><span class="badge bg-success">Beward</span> - домофоны с реле</li>
-                            <li><span class="badge bg-warning">Vivotek</span> - PTZ-камеры</li>
-                        </ul>
-                    </div>
-                    <div class="col-md-4 text-center">
-                        <button class="btn btn-primary btn-lg" onclick="importFromHA()" id="importBtn">
-                            <i class="bi bi-cloud-download"></i> Импортировать камеры
-                        </button>
-                        <div id="importStatus" class="mt-2"></div>
-                    </div>
-                </div>
-                
-                <!-- Результаты импорта -->
-                <div id="importResults" class="mt-3" style="display: none;">
-                    <div class="alert alert-info">
-                        <h6><i class="bi bi-list-check"></i> Результаты импорта:</h6>
-                        <div id="importDetails"></div>
-                    </div>
-                </div>
-            </div>
+<div class="settings-container">
+    <!-- ЛЕВАЯ ПАНЕЛЬ - СПИСОК КАМЕР -->
+    <div class="cameras-panel">
+        <div class="panel-title">
+            <i class="bi bi-camera"></i> Камеры
+            <span class="badge bg-primary float-end" id="totalCameras">0</span>
         </div>
-    </div>
-</div>
-
-<div class="row">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                <div>
-                    <i class="bi bi-list"></i> Список камер
-                </div>
-                <div>
-                    <button class="btn btn-sm btn-outline-light" onclick="loadCameras()">
-                        <i class="bi bi-arrow-repeat"></i> Обновить
-                    </button>
-                </div>
+        
+        <!-- СИСТЕМНАЯ ИНФОРМАЦИЯ -->
+        <div class="system-info">
+            <div class="system-info-title">
+                <i class="bi bi-cpu"></i> Системные ресурсы
             </div>
-            <div class="card-body">
-                <div id="camerasList" class="cameras-list">
-                    <!-- Загружается через JS -->
-                    <div class="text-center p-5">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Загрузка...</span>
-                        </div>
-                        <p class="mt-2">Загрузка списка камер...</p>
-                    </div>
-                </div>
+            <div class="system-info-row">
+                <span class="system-info-label">Активных записей:</span>
+                <span class="system-info-value" id="activeRecordingsCount">0</span>
             </div>
-        </div>
-    </div>
-    
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header bg-success text-white">
-                <i class="bi bi-plus-circle"></i> Добавить камеру вручную
+            <div class="system-info-row">
+                <span class="system-info-label">Лимит записей:</span>
+                <span class="system-info-value" id="maxRecordingsLimit">5</span>
             </div>
-            <div class="card-body">
-                <form id="cameraForm" onsubmit="addCamera(event)">
-                    <div class="mb-3">
-                        <label class="form-label">Название</label>
-                        <input type="text" class="form-control" id="name" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">IP адрес</label>
-                        <input type="text" class="form-control" id="ip" required pattern="\d+\.\d+\.\d+\.\d+">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Тип</label>
-                        <select class="form-select" id="type">
-                            <option value="openipc">OpenIPC</option>
-                            <option value="beward">Beward (домофон)</option>
-                            <option value="vivotek">Vivotek (PTZ)</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Логин</label>
-                        <input type="text" class="form-control" id="username" value="root">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Пароль</label>
-                        <input type="password" class="form-control" id="password" value="12345">
-                    </div>
-                    <button type="submit" class="btn btn-success w-100">
-                        <i class="bi bi-plus-circle"></i> Добавить камеру
-                    </button>
-                </form>
+            <div class="system-info-row">
+                <span class="system-info-label">Загрузка CPU:</span>
+                <span class="system-info-value" id="cpuLoad">0%</span>
+            </div>
+            <div class="system-info-row">
+                <span class="system-info-label">Использование RAM:</span>
+                <span class="system-info-value" id="ramUsage">0%</span>
+            </div>
+            <div class="system-info-row">
+                <span class="system-info-label">Всего записей:</span>
+                <span class="system-info-value" id="totalRecordingsCount">0</span>
             </div>
         </div>
         
-        <div class="card mt-3">
-            <div class="card-header bg-info text-white">
-                <i class="bi bi-question-circle"></i> Подсказка
+        <div class="camera-list" id="cameraList">
+            <!-- Загружается через JS -->
+            <div class="text-center p-3">
+                <div class="loading-spinner"></div>
             </div>
-            <div class="card-body">
-                <p><strong>Типы камер:</strong></p>
-                <p><span class="badge bg-primary">OpenIPC</span> - Обычные IP-камеры на прошивке OpenIPC</p>
-                <p><span class="badge bg-success">Beward</span> - Домофоны DS07P-LP с реле</p>
-                <p><span class="badge bg-warning">Vivotek</span> - PTZ-камеры с управлением</p>
+        </div>
+        
+        <div class="import-panel">
+            <h6><i class="bi bi-cloud-download"></i> Импорт из HA</h6>
+            <button class="btn btn-primary btn-sm w-100" onclick="importFromHA()">
+                <i class="bi bi-cloud-download"></i> Импортировать камеры
+            </button>
+            <div id="importStatus" class="import-status mt-2"></div>
+        </div>
+        
+        <div class="import-panel">
+            <h6><i class="bi bi-plus-circle"></i> Добавить камеру</h6>
+            <form id="cameraForm" onsubmit="addCamera(event)">
+                <input type="text" class="form-control mb-2 bg-dark text-white" placeholder="Название" id="name" required>
+                <input type="text" class="form-control mb-2 bg-dark text-white" placeholder="IP адрес" id="ip" required>
+                <select class="form-select mb-2 bg-dark text-white" id="type">
+                    <option value="openipc">OpenIPC</option>
+                    <option value="beward">Beward</option>
+                    <option value="vivotek">Vivotek</option>
+                </select>
+                <input type="text" class="form-control mb-2 bg-dark text-white" placeholder="Логин" id="username" value="root">
+                <input type="password" class="form-control mb-2 bg-dark text-white" placeholder="Пароль" id="password" value="12345">
+                <button type="submit" class="btn btn-success w-100">Добавить</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- ПРАВАЯ ПАНЕЛЬ - НАСТРОЙКИ -->
+    <div class="settings-panel" id="settingsPanel" style="display: none;">
+        <!-- Вкладки настроек -->
+        <div class="settings-tabs">
+            <button class="settings-tab active" onclick="switchTab('general')">Основные</button>
+            <button class="settings-tab" onclick="switchTab('recording')">Запись</button>
+            <button class="settings-tab" onclick="switchTab('detection')">Детекция</button>
+            <button class="settings-tab" onclick="switchTab('osd')">OSD</button>
+            <button class="settings-tab" onclick="switchTab('system')">Система</button>
+        </div>
+        
+        <!-- ОСНОВНЫЕ НАСТРОЙКИ -->
+        <div id="tab-general" class="tab-content active">
+            <div class="settings-card">
+                <div class="card-title">
+                    <span>Общая информация</span>
+                    <span class="badge bg-info" id="cameraStatus">Online</span>
+                </div>
                 
-                <hr>
-                <p><strong>Импорт из HA:</strong></p>
-                <p>Камеры, добавленные через интеграцию OpenIPC в Home Assistant, автоматически подтянутся с правильными настройками.</p>
+                <div class="config-row">
+                    <div class="config-label">Название камеры</div>
+                    <div class="config-value">
+                        <input type="text" class="config-input" id="cameraName">
+                    </div>
+                </div>
+                
+                <div class="config-row">
+                    <div class="config-label">IP адрес</div>
+                    <div class="config-value">
+                        <input type="text" class="config-input" id="cameraIp" readonly>
+                    </div>
+                </div>
+                
+                <div class="config-row">
+                    <div class="config-label">Тип камеры</div>
+                    <div class="config-value">
+                        <select class="config-select" id="cameraType">
+                            <option value="openipc">OpenIPC</option>
+                            <option value="beward">Beward</option>
+                            <option value="vivotek">Vivotek</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="config-row">
+                    <div class="config-label">Логин</div>
+                    <div class="config-value">
+                        <input type="text" class="config-input" id="cameraUsername">
+                    </div>
+                </div>
+                
+                <div class="config-row">
+                    <div class="config-label">Пароль</div>
+                    <div class="config-value">
+                        <input type="password" class="config-input" id="cameraPassword">
+                    </div>
+                </div>
+                
+                <div class="config-row">
+                    <div class="config-label">RTSP порт</div>
+                    <div class="config-value">
+                        <input type="number" class="config-input" id="cameraRtspPort" value="554">
+                    </div>
+                </div>
+                
+                <div class="config-row">
+                    <div class="config-label">HTTP порт</div>
+                    <div class="config-value">
+                        <input type="number" class="config-input" id="cameraHttpPort" value="80">
+                    </div>
+                </div>
             </div>
+        </div>
+        
+        <!-- НАСТРОЙКИ ЗАПИСИ -->
+        <div id="tab-recording" class="tab-content">
+            <div class="settings-card">
+                <div class="card-title">
+                    <span>Параметры записи</span>
+                </div>
+                
+                <!-- Предупреждение о нагрузке -->
+                <div class="warning-card" id="loadWarning" style="display: none;">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Внимание!</strong> Высокое качество и высокий FPS создают большую нагрузку на систему.
+                </div>
+                
+                <div class="config-section">
+                    <div class="config-section-title">⚙️ Основные настройки</div>
+                    
+                    <div class="config-row">
+                        <div class="config-label">Режим записи</div>
+                        <div class="config-value">
+                            <select class="config-select" id="recordingMode" onchange="toggleRecordingMode()">
+                                <option value="continuous">Непрерывная 24/7</option>
+                                <option value="motion">По движению</option>
+                                <option value="schedule">По расписанию</option>
+                                <option value="disabled">Отключена</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="config-row">
+                        <div class="config-label">Длительность сегмента</div>
+                        <div class="config-value">
+                            <select class="config-select" id="segmentDuration" onchange="checkQualityWarning()">
+                                <option value="60">1 минута</option>
+                                <option value="300" selected>5 минут</option>
+                                <option value="600">10 минут</option>
+                                <option value="900">15 минут</option>
+                                <option value="1800">30 минут</option>
+                                <option value="3600">1 час</option>
+                            </select>
+                            <small class="text-muted">Видео будет разбито на файлы указанной длительности</small>
+                        </div>
+                    </div>
+                    
+                    <div class="config-row">
+                        <div class="config-label">Глубина архива</div>
+                        <div class="config-value">
+                            <input type="number" class="config-input" id="archiveDepth" value="7" min="1" max="365">
+                            <small class="text-muted">дней</small>
+                        </div>
+                    </div>
+                    
+                    <div class="config-row">
+                        <div class="config-label">Качество</div>
+                        <div class="config-value">
+                            <select class="config-select" id="recordQuality" onchange="checkQualityWarning()">
+                                <option value="high">Высокое (нагрузка)</option>
+                                <option value="medium" selected>Среднее (баланс)</option>
+                                <option value="low">Низкое (экономия)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="config-row">
+                        <div class="config-label">FPS (кадров в секунду)</div>
+                        <div class="config-value">
+                            <select class="config-select" id="recordFps" onchange="checkQualityWarning()">
+                                <option value="5">5 fps (экономия)</option>
+                                <option value="10">10 fps (средне)</option>
+                                <option value="15" selected>15 fps (рекомендуется)</option>
+                                <option value="20">20 fps (нагрузка)</option>
+                                <option value="25">25 fps (высокая нагрузка)</option>
+                                <option value="30">30 fps (макс. нагрузка)</option>
+                            </select>
+                            <small class="text-muted">Больше FPS = больше нагрузка на CPU</small>
+                        </div>
+                    </div>
+                    
+                    <div class="config-row">
+                        <div class="config-label">Формат</div>
+                        <div class="config-value">
+                            <select class="config-select" id="recordFormat">
+                                <option value="mp4">MP4</option>
+                                <option value="mkv">MKV</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="config-section" id="scheduleSection" style="display: none;">
+                    <div class="config-section-title">⏰ Расписание</div>
+                    
+                    <div class="config-row">
+                        <div class="config-label">Пн-Пт</div>
+                        <div class="config-value">
+                            <input type="time" class="config-input" id="scheduleWeekStart" value="00:00"> -
+                            <input type="time" class="config-input" id="scheduleWeekEnd" value="23:59">
+                        </div>
+                    </div>
+                    
+                    <div class="config-row">
+                        <div class="config-label">Сб-Вс</div>
+                        <div class="config-value">
+                            <input type="time" class="config-input" id="scheduleWeekendStart" value="00:00"> -
+                            <input type="time" class="config-input" id="scheduleWeekendEnd" value="23:59">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="btn-group">
+                    <button class="btn btn-success" onclick="saveCameraRecordingSettings()">
+                        <i class="bi bi-save"></i> Сохранить настройки записи
+                    </button>
+                    <button class="btn btn-primary" onclick="testCameraRecording()">
+                        <i class="bi bi-play"></i> Тест записи (30 сек)
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- НАСТРОЙКИ ДЕТЕКЦИИ -->
+        <div id="tab-detection" class="tab-content">
+            <div class="settings-card">
+                <div class="card-title">Детекция объектов</div>
+                
+                <div class="config-section">
+                    <div class="config-section-title">🎯 Основная детекция</div>
+                    
+                    <div class="config-row">
+                        <div class="config-label">Детекция движения</div>
+                        <div class="config-value">
+                            <input type="checkbox" class="config-checkbox" id="detectMotion" checked>
+                            <label>Включено</label>
+                        </div>
+                    </div>
+                    
+                    <div class="config-row">
+                        <div class="config-label">Детекция QR</div>
+                        <div class="config-value">
+                            <input type="checkbox" class="config-checkbox" id="detectQR" checked>
+                            <label>Включено</label>
+                        </div>
+                    </div>
+                    
+                    <div class="config-row">
+                        <div class="config-label">Чувствительность</div>
+                        <div class="config-value">
+                            <input type="range" class="w-100" id="motionSensitivity" min="1" max="10" value="5" oninput="updateSensitivityLabel()">
+                            <span id="sensitivityValue" class="badge bg-primary">5</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="config-section">
+                    <div class="config-section-title">👤 Люди</div>
+                    <div class="config-row">
+                        <div class="config-label">Включено</div>
+                        <div class="config-value">
+                            <input type="checkbox" class="config-checkbox" id="detectPerson">
+                        </div>
+                    </div>
+                    <div class="config-row">
+                        <div class="config-label">Мин. уверенность</div>
+                        <div class="config-value">
+                            <input type="number" class="config-input" id="personConfidence" value="70" min="1" max="100"> %
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="config-section">
+                    <div class="config-section-title">🚗 Автомобили</div>
+                    <div class="config-row">
+                        <div class="config-label">Включено</div>
+                        <div class="config-value">
+                            <input type="checkbox" class="config-checkbox" id="detectCar" checked>
+                        </div>
+                    </div>
+                    <div class="config-row">
+                        <div class="config-label">Мин. уверенность</div>
+                        <div class="config-value">
+                            <input type="number" class="config-input" id="carConfidence" value="80" min="1" max="100"> %
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="config-section">
+                    <div class="config-section-title">🔢 Номера (LPR)</div>
+                    <div class="config-row">
+                        <div class="config-label">Включено</div>
+                        <div class="config-value">
+                            <input type="checkbox" class="config-checkbox" id="detectLPR" checked>
+                        </div>
+                    </div>
+                    <div class="config-row">
+                        <div class="config-label">Белый список</div>
+                        <div class="config-value">
+                            <textarea class="config-input" id="whitelist" rows="3" placeholder="A123BC77&#10;B456OP99"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- НАСТРОЙКИ OSD -->
+        <div id="tab-osd" class="tab-content">
+            <div class="settings-card">
+                <div class="card-title">OSD настройки</div>
+                
+                <div class="config-section">
+                    <div class="config-row">
+                        <div class="config-label">Включить OSD</div>
+                        <div class="config-value">
+                            <input type="checkbox" class="config-checkbox" id="osdEnabled">
+                        </div>
+                    </div>
+                    
+                    <div class="config-row">
+                        <div class="config-label">Порт OSD</div>
+                        <div class="config-value">
+                            <input type="number" class="config-input" id="osdPort" value="9000">
+                        </div>
+                    </div>
+                    
+                    <div class="config-row">
+                        <div class="config-label">Формат времени</div>
+                        <div class="config-value">
+                            <input type="text" class="config-input" id="osdTimeFormat" value="%d.%m.%Y %H:%M:%S">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="config-section">
+                    <div class="config-section-title">Регион 1 (текст)</div>
+                    <div class="config-row">
+                        <div class="config-label">Текст</div>
+                        <div class="config-value">
+                            <input type="text" class="config-input" id="osdRegion1Text" value="ДВЕРЬ ОТКРЫТА $t">
+                        </div>
+                    </div>
+                    <div class="config-row">
+                        <div class="config-label">Цвет</div>
+                        <div class="config-value">
+                            <input type="color" class="config-input" id="osdRegion1Color" value="#ff0000">
+                        </div>
+                    </div>
+                    <div class="config-row">
+                        <div class="config-label">Размер</div>
+                        <div class="config-value">
+                            <input type="number" class="config-input" id="osdRegion1Size" value="48" min="8" max="72">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="config-section">
+                    <div class="config-section-title">Регион 2 (текст)</div>
+                    <div class="config-row">
+                        <div class="config-label">Текст</div>
+                        <div class="config-value">
+                            <input type="text" class="config-input" id="osdRegion2Text" value="ЗАПИСЬ: 3 МИН">
+                        </div>
+                    </div>
+                    <div class="config-row">
+                        <div class="config-label">Цвет</div>
+                        <div class="config-value">
+                            <input type="color" class="config-input" id="osdRegion2Color" value="#ffff00">
+                        </div>
+                    </div>
+                    <div class="config-row">
+                        <div class="config-label">Размер</div>
+                        <div class="config-value">
+                            <input type="number" class="config-input" id="osdRegion2Size" value="36" min="8" max="72">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- НАСТРОЙКИ СИСТЕМЫ -->
+        <div id="tab-system" class="tab-content">
+            <div class="settings-card">
+                <div class="card-title">
+                    <span><i class="bi bi-gear-wide-connected"></i> Системные настройки</span>
+                </div>
+                
+                <div class="config-section">
+                    <div class="config-section-title">⚡ Производительность</div>
+                    
+                    <div class="config-row">
+                        <div class="config-label">Макс. одновременных записей</div>
+                        <div class="config-value">
+                            <input type="number" class="config-input" id="maxRecordings" value="5" min="1" max="20" step="1">
+                            <small class="text-muted">Рекомендуется 5 для 8GB RAM</small>
+                        </div>
+                    </div>
+                    
+                    <div class="config-row">
+                        <div class="config-label">Текущая нагрузка CPU</div>
+                        <div class="config-value">
+                            <div class="progress" style="height: 20px; background: #333;">
+                                <div class="progress-bar" id="systemCpuBar" role="progressbar" style="width: 0%; background: #28a745;">0%</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="config-row">
+                        <div class="config-label">Использование RAM</div>
+                        <div class="config-value">
+                            <div class="progress" style="height: 20px; background: #333;">
+                                <div class="progress-bar" id="systemRamBar" role="progressbar" style="width: 0%; background: #17a2b8;">0%</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="config-section">
+                    <div class="config-section-title">🎮 Управление записями</div>
+                    
+                    <div class="btn-group" style="flex-direction: column; gap: 10px;">
+                        <button class="btn btn-info" onclick="applyMaxRecordings()" style="width: 100%;">
+                            <i class="bi bi-check-circle"></i> Применить лимит записей (без перезагрузки)
+                        </button>
+                        
+                        <button class="btn btn-warning" onclick="applySettingsToAllCameras()" style="width: 100%;">
+                            <i class="bi bi-files"></i> Применить текущие настройки ко всем камерам
+                        </button>
+                        
+                        <button class="btn btn-success" onclick="restartAllRecordings()" style="width: 100%;">
+                            <i class="bi bi-arrow-repeat"></i> Перезапустить все записи
+                        </button>
+                        
+                        <button class="btn btn-danger" onclick="stopAllRecordings()" style="width: 100%;">
+                            <i class="bi bi-stop-circle"></i> Остановить все записи
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="config-section">
+                    <div class="config-section-title">📊 Статистика</div>
+                    
+                    <div class="config-row">
+                        <div class="config-label">Всего записей в БД:</div>
+                        <div class="config-value" id="totalRecordingsDb">0</div>
+                    </div>
+                    <div class="config-row">
+                        <div class="config-label">Активных записей:</div>
+                        <div class="config-value" id="activeRecordingsDb">0</div>
+                    </div>
+                    <div class="config-row">
+                        <div class="config-label">Общий размер:</div>
+                        <div class="config-value" id="totalSizeDb">0 MB</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Кнопки сохранения -->
+        <div class="btn-group mt-3">
+            <button class="btn btn-success" onclick="saveAllSettings()">
+                <i class="bi bi-save"></i> Сохранить все настройки
+            </button>
+            <button class="btn btn-primary" onclick="testCamera()">
+                <i class="bi bi-camera"></i> Тест камеры
+            </button>
+            <button class="btn btn-danger" onclick="deleteCamera()">
+                <i class="bi bi-trash"></i> Удалить камеру
+            </button>
+        </div>
+    </div>
+    
+    <!-- Заглушка, если камера не выбрана -->
+    <div class="settings-panel d-flex align-items-center justify-content-center" id="noCameraSelected">
+        <div class="text-center text-muted">
+            <i class="bi bi-camera" style="font-size: 4rem;"></i>
+            <h4 class="mt-3">Выберите камеру для настройки</h4>
+            <p>Кликните на камеру в списке слева</p>
         </div>
     </div>
 </div>
 
 <script>
+// ===== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ =====
+let cameras = [];
+let currentCameraIndex = -1;
+let systemSettings = {
+    maxRecordings: 5
+};
+
+// ===== ИНИЦИАЛИЗАЦИЯ =====
+document.addEventListener('DOMContentLoaded', function() {
+    loadCameras();
+    loadSystemSettings();
+    loadSystemStats();
+    
+    // Обновляем статистику каждые 5 секунд
+    setInterval(loadSystemStats, 5000);
+});
+
+// ===== ЗАГРУЗКА КАМЕР =====
 function loadCameras() {
     fetch('/api/config')
         .then(r => r.json())
         .then(data => {
-            const list = document.getElementById('camerasList');
-            list.innerHTML = '';
-            
-            if (data.config.cameras && data.config.cameras.length > 0) {
-                data.config.cameras.forEach((cam, index) => {
-                    // Определяем иконку и цвет по типу
-                    let typeIcon = '';
-                    let typeClass = '';
-                    let typeBadge = '';
-                    
-                    switch(cam.type) {
-                        case 'openipc':
-                            typeIcon = 'bi-camera-video';
-                            typeClass = 'text-primary';
-                            typeBadge = '<span class="badge bg-primary">OpenIPC</span>';
-                            break;
-                        case 'beward':
-                            typeIcon = 'bi-door-open';
-                            typeClass = 'text-success';
-                            typeBadge = '<span class="badge bg-success">Beward</span>';
-                            break;
-                        case 'vivotek':
-                            typeIcon = 'bi-arrow-move';
-                            typeClass = 'text-warning';
-                            typeBadge = '<span class="badge bg-warning">Vivotek</span>';
-                            break;
-                        default:
-                            typeIcon = 'bi-question-circle';
-                            typeClass = 'text-secondary';
-                            typeBadge = '<span class="badge bg-secondary">Unknown</span>';
-                    }
-                    
-                    list.innerHTML += `
-                        <div class="card mb-2 camera-item" data-type="${cam.type}">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <h6 class="mb-1">
-                                            <i class="bi ${typeIcon} ${typeClass} me-2"></i>
-                                            ${cam.name}
-                                            ${typeBadge}
-                                            ${cam.osd && cam.osd.enabled ? 
-                                                '<span class="badge bg-info"><i class="bi bi-display"></i> OSD</span>' : ''}
-                                        </h6>
-                                        <small class="text-muted">
-                                            <i class="bi bi-hdd-network"></i> ${cam.ip} | 
-                                            <i class="bi bi-person"></i> ${cam.username}
-                                        </small>
-                                    </div>
-                                    <div>
-                                        <button class="btn btn-sm btn-outline-danger" onclick="deleteCamera(${index})">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                });
-            } else {
-                list.innerHTML = `
-                    <div class="text-center p-5 text-muted">
-                        <i class="bi bi-camera" style="font-size: 3rem;"></i>
-                        <p class="mt-2">Нет добавленных камер</p>
-                        <p class="small">Добавьте камеру вручную или импортируйте из Home Assistant</p>
-                    </div>
-                `;
-            }
+            cameras = data.config.cameras || [];
+            renderCameraList();
+            document.getElementById('totalCameras').textContent = cameras.length;
         });
 }
 
-function addCamera(event) {
-    event.preventDefault();
+function renderCameraList() {
+    const list = document.getElementById('cameraList');
     
-    const name = document.getElementById('name').value;
-    const ip = document.getElementById('ip').value;
-    const type = document.getElementById('type').value;
-    const username = document.getElementById('username').value;
-    const password = document.getElementById('password').value;
+    if (cameras.length === 0) {
+        list.innerHTML = '<div class="text-center p-4 text-muted">Нет камер</div>';
+        return;
+    }
     
-    fetch('/api/config')
+    list.innerHTML = cameras.map((cam, index) => {
+        const recordingMode = cam.recording?.mode || 'continuous';
+        let modeBadge = '';
+        
+        if (recordingMode === 'continuous') {
+            modeBadge = '<span class="recording-badge badge-continuous">24/7</span>';
+        } else if (recordingMode === 'motion') {
+            modeBadge = '<span class="recording-badge badge-motion">По движению</span>';
+        } else if (recordingMode === 'disabled') {
+            modeBadge = '<span class="recording-badge badge-disabled">Выкл</span>';
+        }
+        
+        return `
+            <div class="camera-item ${index === currentCameraIndex ? 'selected' : ''}" onclick="selectCamera(${index})">
+                <span class="camera-status status-online"></span>
+                <div class="camera-info">
+                    <div class="camera-name">${cam.name} ${modeBadge}</div>
+                    <div class="camera-ip">${cam.ip}</div>
+                </div>
+                <span class="camera-type">${cam.type}</span>
+            </div>
+        `;
+    }).join('');
+}
+
+// ===== ЗАГРУЗКА СИСТЕМНЫХ НАСТРОЕК =====
+function loadSystemSettings() {
+    // Загружаем лимит из localStorage или используем значение по умолчанию
+    const savedLimit = localStorage.getItem('maxRecordings');
+    if (savedLimit) {
+        systemSettings.maxRecordings = parseInt(savedLimit);
+    }
+    document.getElementById('maxRecordings').value = systemSettings.maxRecordings;
+    document.getElementById('maxRecordingsLimit').textContent = systemSettings.maxRecordings;
+}
+
+function loadSystemStats() {
+    fetch('/api/recordings/resources')
         .then(r => r.json())
         .then(data => {
-            // Создаем базовую конфигурацию камеры
-            const newCamera = {
-                name: name,
-                ip: ip,
-                type: type,
-                username: username,
-                password: password,
-                snapshot_endpoints: ["/image.jpg"],
-                tts_endpoint: "/play_audio",
-                tts_format: "pcm",
-                osd: {
-                    enabled: true,
-                    port: 9000,
-                    time_format: "%d.%m.%Y %H:%M:%S",
-                    regions: {
-                        "0": {"type": "image", "enabled": false, "image_path": "", "posx": 10, "posy": 10},
-                        "1": {"type": "text", "enabled": true, "text": "ДВЕРЬ ОТКРЫТА $t", "color": "#ff0000", "size": 48, "posx": 50, "posy": 50, "font": "UbuntuMono-Regular", "opacity": 255},
-                        "2": {"type": "text", "enabled": true, "text": "ЗАПИСЬ: 3 МИН", "color": "#ffff00", "size": 36, "posx": 50, "posy": 120, "font": "UbuntuMono-Regular", "opacity": 255},
-                        "3": {"type": "text", "enabled": false, "text": "", "color": "#ffffff", "size": 32, "posx": 10, "posy": 200, "font": "UbuntuMono-Regular", "opacity": 255}
-                    }
+            if (data.success) {
+                // Обновляем статистику в левой панели
+                document.getElementById('activeRecordingsCount').textContent = data.active_recordings;
+                document.getElementById('maxRecordingsLimit').textContent = systemSettings.maxRecordings;
+                document.getElementById('cpuLoad').textContent = data.cpu_percent + '%';
+                document.getElementById('ramUsage').textContent = data.memory.percent + '%';
+                
+                // Обновляем прогресс-бары в системной вкладке
+                document.getElementById('systemCpuBar').style.width = data.cpu_percent + '%';
+                document.getElementById('systemCpuBar').textContent = data.cpu_percent + '%';
+                
+                if (data.cpu_percent > 80) {
+                    document.getElementById('systemCpuBar').style.background = '#dc3545';
+                } else if (data.cpu_percent > 50) {
+                    document.getElementById('systemCpuBar').style.background = '#ffc107';
+                } else {
+                    document.getElementById('systemCpuBar').style.background = '#28a745';
                 }
-            };
-            
-            // Добавляем специфичные для типа настройки
-            if (type === 'beward') {
-                newCamera.tts_format = 'alaw';
-                newCamera.tts_endpoint = '/cgi-bin/audio/transmit.cgi';
-                newCamera.snapshot_endpoints = ['/cgi-bin/jpg/image.cgi', '/cgi-bin/snapshot.cgi'];
-                newCamera.relay_endpoints = {
-                    "relay1_on": "/cgi-bin/alarmout_cgi?action=set&Output=0&Status=1",
-                    "relay1_off": "/cgi-bin/alarmout_cgi?action=set&Output=0&Status=0",
-                    "relay2_on": "/cgi-bin/alarmout_cgi?action=set&Output=1&Status=1",
-                    "relay2_off": "/cgi-bin/alarmout_cgi?action=set&Output=1&Status=0"
-                };
-            } else if (type === 'vivotek') {
-                newCamera.snapshot_endpoints = ['/cgi-bin/viewer/video.jpg', '/cgi-bin/video.jpg'];
+                
+                document.getElementById('systemRamBar').style.width = data.memory.percent + '%';
+                document.getElementById('systemRamBar').textContent = data.memory.percent + '%';
+                
+                // Обновляем статистику записей
+                document.getElementById('activeRecordingsDb').textContent = data.active_recordings;
             }
-            
-            data.config.cameras.push(newCamera);
-            
-            return fetch('/api/config/save', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(data.config)
-            });
         })
-        .then(() => {
-            document.getElementById('cameraForm').reset();
-            document.getElementById('username').value = 'root';
-            document.getElementById('password').value = '12345';
-            loadCameras();
-            showNotification('success', 'Камера добавлена');
-        });
-}
-
-function deleteCamera(index) {
-    if (!confirm('Удалить эту камеру?')) return;
+        .catch(err => console.error('Error loading system stats:', err));
     
-    fetch('/api/config')
+    // Загружаем общую статистику записей
+    fetch('/api/recordings/stats')
         .then(r => r.json())
         .then(data => {
-            data.config.cameras.splice(index, 1);
-            return fetch('/api/config/save', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(data.config)
-            });
+            if (data.success) {
+                document.getElementById('totalRecordingsDb').textContent = data.total_recordings;
+                document.getElementById('totalSizeDb').textContent = (data.total_size / (1024 * 1024)).toFixed(1) + ' MB';
+                document.getElementById('totalRecordingsCount').textContent = data.total_recordings;
+            }
         })
-        .then(() => {
-            loadCameras();
-            showNotification('success', 'Камера удалена');
-        });
+        .catch(err => console.error('Error loading recordings stats:', err));
 }
 
-function importFromHA() {
-    const btn = document.getElementById('importBtn');
-    const status = document.getElementById('importStatus');
-    const results = document.getElementById('importResults');
-    const details = document.getElementById('importDetails');
+// ===== ПРИМЕНЕНИЕ ЛИМИТА ЗАПИСЕЙ =====
+function applyMaxRecordings() {
+    const newLimit = parseInt(document.getElementById('maxRecordings').value);
     
-    btn.disabled = true;
-    status.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Импорт...';
-    results.style.display = 'none';
+    if (newLimit < 1 || newLimit > 20) {
+        showNotification('error', 'Лимит должен быть от 1 до 20');
+        return;
+    }
     
-    fetch('/api/ha/import_cameras', {
+    // Сохраняем в localStorage для немедленного обновления UI
+    localStorage.setItem('maxRecordings', newLimit);
+    systemSettings.maxRecordings = newLimit;
+    
+    // Отправляем на сервер
+    fetch('/api/config/system', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({maxRecordings: newLimit})
+    })
+    .then(r => {
+        if (!r.ok) {
+            throw new Error(`HTTP error ${r.status}`);
+        }
+        return r.json();
+    })
+    .then(data => {
+        if (data.success) {
+            showNotification('success', `✅ Лимит записей изменен на ${newLimit}`);
+            document.getElementById('maxRecordingsLimit').textContent = newLimit;
+        } else {
+            showNotification('error', '❌ Ошибка при сохранении лимита: ' + (data.error || 'Неизвестная ошибка'));
+        }
+    })
+    .catch(err => {
+        console.error('Error saving limit:', err);
+        showNotification('error', '❌ Ошибка при сохранении лимита: ' + err.message);
+    });
+}
+
+// ===== ПРИМЕНЕНИЕ НАСТРОЕК КО ВСЕМ КАМЕРАМ =====
+function applySettingsToAllCameras() {
+    if (!confirm('Применить текущие настройки записи ко всем камерам?')) {
+        return;
+    }
+    
+    const settings = {
+        mode: document.getElementById('recordingMode').value,
+        segment_duration: parseInt(document.getElementById('segmentDuration').value),
+        archive_depth: parseInt(document.getElementById('archiveDepth').value),
+        quality: document.getElementById('recordQuality').value,
+        fps: parseInt(document.getElementById('recordFps').value),
+        format: document.getElementById('recordFormat').value,
+        detect_motion: document.getElementById('detectMotion').checked,
+        detect_qr: document.getElementById('detectQR').checked,
+        sensitivity: parseInt(document.getElementById('motionSensitivity').value)
+    };
+    
+    showNotification('info', 'Применение настроек ко всем камерам...');
+    
+    let successCount = 0;
+    let errorCount = 0;
+    const promises = [];
+    
+    cameras.forEach(cam => {
+        const promise = fetch(`/api/recording/settings/${cam.ip}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(settings)
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                successCount++;
+                // Обновляем локальные данные камеры
+                cam.recording = {
+                    ...cam.recording,
+                    mode: settings.mode,
+                    segment_duration: settings.segment_duration,
+                    archive_depth: settings.archive_depth,
+                    quality: settings.quality,
+                    fps: settings.fps,
+                    format: settings.format
+                };
+                cam.detection = {
+                    ...cam.detection,
+                    motion: settings.detect_motion,
+                    qr: settings.detect_qr,
+                    sensitivity: settings.sensitivity
+                };
+            } else {
+                errorCount++;
+            }
+        })
+        .catch(() => errorCount++);
+        
+        promises.push(promise);
+    });
+    
+    Promise.all(promises).then(() => {
+        showNotification('success', `Настройки применены: ${successCount} успешно, ${errorCount} ошибок`);
+        renderCameraList(); // Обновляем отображение
+    });
+}
+
+// ===== ПЕРЕЗАПУСК ВСЕХ ЗАПИСЕЙ =====
+function restartAllRecordings() {
+    if (!confirm('Перезапустить все активные записи? Это может занять некоторое время.')) {
+        return;
+    }
+    
+    showNotification('info', 'Перезапуск всех записей...');
+    
+    fetch('/api/recordings/restart_all', {
         method: 'POST'
+    })
+    .then(r => {
+        if (!r.ok) {
+            throw new Error(`HTTP error ${r.status}`);
+        }
+        return r.json();
+    })
+    .then(data => {
+        if (data.success) {
+            showNotification('success', `✅ Перезапущено ${data.restarted} записей`);
+        } else {
+            showNotification('error', '❌ Ошибка при перезапуске: ' + (data.error || 'Неизвестная ошибка'));
+        }
+    })
+    .catch(err => {
+        console.error('Error restarting recordings:', err);
+        showNotification('error', '❌ Ошибка при перезапуске: ' + err.message);
+    });
+}
+
+// ===== ОСТАНОВКА ВСЕХ ЗАПИСЕЙ =====
+function stopAllRecordings() {
+    if (!confirm('Остановить все активные записи?')) {
+        return;
+    }
+    
+    showNotification('info', 'Остановка всех записей...');
+    
+    fetch('/api/recordings/stop_all', {
+        method: 'POST'
+    })
+    .then(r => {
+        if (!r.ok) {
+            throw new Error(`HTTP error ${r.status}`);
+        }
+        return r.json();
+    })
+    .then(data => {
+        if (data.success) {
+            showNotification('success', '✅ Все записи остановлены');
+        } else {
+            showNotification('error', '❌ Ошибка при остановке: ' + (data.error || 'Неизвестная ошибка'));
+        }
+    })
+    .catch(err => {
+        console.error('Error stopping recordings:', err);
+        showNotification('error', '❌ Ошибка при остановке: ' + err.message);
+    });
+}
+
+// ===== ВЫБОР КАМЕРЫ =====
+function selectCamera(index) {
+    currentCameraIndex = index;
+    renderCameraList();
+    
+    document.getElementById('noCameraSelected').style.display = 'none';
+    document.getElementById('settingsPanel').style.display = 'block';
+    
+    loadCameraSettings(index);
+}
+
+function loadCameraSettings(index) {
+    const cam = cameras[index];
+    
+    // Основные настройки
+    document.getElementById('cameraName').value = cam.name || '';
+    document.getElementById('cameraIp').value = cam.ip || '';
+    document.getElementById('cameraType').value = cam.type || 'openipc';
+    document.getElementById('cameraUsername').value = cam.username || 'root';
+    document.getElementById('cameraPassword').value = cam.password || '12345';
+    document.getElementById('cameraRtspPort').value = cam.rtsp_port || 554;
+    document.getElementById('cameraHttpPort').value = cam.port || 80;
+    
+    // Настройки записи
+    if (cam.recording) {
+        document.getElementById('recordingMode').value = cam.recording.mode || 'continuous';
+        document.getElementById('segmentDuration').value = cam.recording.segment_duration || 300;
+        document.getElementById('archiveDepth').value = cam.recording.archive_depth || 7;
+        document.getElementById('recordQuality').value = cam.recording.quality || 'medium';
+        document.getElementById('recordFps').value = cam.recording.fps || 15;
+        document.getElementById('recordFormat').value = cam.recording.format || 'mp4';
+        
+        // Расписание
+        if (cam.recording.schedule) {
+            document.getElementById('scheduleWeekStart').value = cam.recording.schedule.week_start || '00:00';
+            document.getElementById('scheduleWeekEnd').value = cam.recording.schedule.week_end || '23:59';
+            document.getElementById('scheduleWeekendStart').value = cam.recording.schedule.weekend_start || '00:00';
+            document.getElementById('scheduleWeekendEnd').value = cam.recording.schedule.weekend_end || '23:59';
+        }
+    }
+    
+    // Настройки детекции
+    if (cam.detection) {
+        document.getElementById('detectMotion').checked = cam.detection.motion !== false;
+        document.getElementById('detectQR').checked = cam.detection.qr !== false;
+        document.getElementById('motionSensitivity').value = cam.detection.sensitivity || 5;
+        document.getElementById('sensitivityValue').textContent = cam.detection.sensitivity || 5;
+        
+        document.getElementById('detectPerson').checked = cam.detection.person || false;
+        document.getElementById('personConfidence').value = cam.detection.person_confidence || 70;
+        document.getElementById('detectCar').checked = cam.detection.car || false;
+        document.getElementById('carConfidence').value = cam.detection.car_confidence || 80;
+        document.getElementById('detectLPR').checked = cam.detection.lpr || false;
+        document.getElementById('whitelist').value = (cam.detection.whitelist || []).join('\n');
+    }
+    
+    // OSD настройки
+    if (cam.osd) {
+        document.getElementById('osdEnabled').checked = cam.osd.enabled || false;
+        document.getElementById('osdPort').value = cam.osd.port || 9000;
+        document.getElementById('osdTimeFormat').value = cam.osd.time_format || '%d.%m.%Y %H:%M:%S';
+        
+        if (cam.osd.regions) {
+            document.getElementById('osdRegion1Text').value = cam.osd.regions[1]?.text || 'ДВЕРЬ ОТКРЫТА $t';
+            document.getElementById('osdRegion1Color').value = cam.osd.regions[1]?.color || '#ff0000';
+            document.getElementById('osdRegion1Size').value = cam.osd.regions[1]?.size || 48;
+            
+            document.getElementById('osdRegion2Text').value = cam.osd.regions[2]?.text || 'ЗАПИСЬ: 3 МИН';
+            document.getElementById('osdRegion2Color').value = cam.osd.regions[2]?.color || '#ffff00';
+            document.getElementById('osdRegion2Size').value = cam.osd.regions[2]?.size || 36;
+        }
+    }
+    
+    toggleRecordingMode();
+    checkQualityWarning();
+}
+
+// ===== ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК =====
+function switchTab(tabName) {
+    document.querySelectorAll('.settings-tab').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+    
+    event.currentTarget.classList.add('active');
+    document.getElementById(`tab-${tabName}`).classList.add('active');
+}
+
+// ===== УПРАВЛЕНИЕ РЕЖИМОМ ЗАПИСИ =====
+function toggleRecordingMode() {
+    const mode = document.getElementById('recordingMode').value;
+    document.getElementById('scheduleSection').style.display = mode === 'schedule' ? 'block' : 'none';
+}
+
+function updateSensitivityLabel() {
+    const val = document.getElementById('motionSensitivity').value;
+    document.getElementById('sensitivityValue').textContent = val;
+}
+
+function checkQualityWarning() {
+    const quality = document.getElementById('recordQuality').value;
+    const fps = parseInt(document.getElementById('recordFps').value);
+    const mode = document.getElementById('recordingMode').value;
+    const warning = document.getElementById('loadWarning');
+    
+    if ((quality === 'high' || fps >= 20) && mode === 'continuous') {
+        warning.style.display = 'block';
+    } else {
+        warning.style.display = 'none';
+    }
+}
+
+// ===== СОХРАНЕНИЕ НАСТРОЕК ЗАПИСИ =====
+function saveCameraRecordingSettings() {
+    if (currentCameraIndex === -1) return;
+    
+    const quality = document.getElementById('recordQuality').value;
+    const fps = parseInt(document.getElementById('recordFps').value);
+    const mode = document.getElementById('recordingMode').value;
+    
+    // Предупреждение о высокой нагрузке
+    if ((quality === 'high' || fps >= 20) && mode === 'continuous') {
+        if (!confirm('⚠️ Внимание! Высокое качество и высокий FPS создают большую нагрузку на систему. Продолжить?')) {
+            return;
+        }
+    }
+    
+    const cam = cameras[currentCameraIndex];
+    const cameraIp = cam.ip;
+    
+    const settings = {
+        mode: mode,
+        enabled: mode !== 'disabled',
+        segment_duration: parseInt(document.getElementById('segmentDuration').value),
+        archive_depth: parseInt(document.getElementById('archiveDepth').value),
+        quality: quality,
+        fps: fps,
+        format: document.getElementById('recordFormat').value,
+        detect_motion: document.getElementById('detectMotion').checked,
+        detect_qr: document.getElementById('detectQR').checked,
+        sensitivity: parseInt(document.getElementById('motionSensitivity').value),
+        schedule: {
+            week_start: document.getElementById('scheduleWeekStart').value,
+            week_end: document.getElementById('scheduleWeekEnd').value,
+            weekend_start: document.getElementById('scheduleWeekendStart').value,
+            weekend_end: document.getElementById('scheduleWeekendEnd').value
+        }
+    };
+    
+    showNotification('info', 'Сохранение настроек...');
+    
+    fetch(`/api/recording/settings/${cameraIp}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(settings)
     })
     .then(r => r.json())
     .then(data => {
         if (data.success) {
-            let message = '';
-            let detailsHtml = '';
+            showNotification('success', '✅ Настройки записи сохранены');
             
-            if (data.imported && data.imported.length > 0) {
-                message += `<span class="text-success">✅ Добавлено: ${data.imported.length}</span> `;
-                detailsHtml += `<p><strong>Добавлены:</strong> ${data.imported.join(', ')}</p>`;
-            }
-            if (data.skipped && data.skipped.length > 0) {
-                message += `<span class="text-warning">🔄 Обновлено: ${data.skipped.length}</span> `;
-                detailsHtml += `<p><strong>Обновлены:</strong> ${data.skipped.join(', ')}</p>`;
-            }
-            message += `<br>Всего камер: ${data.total}`;
+            // Обновляем локальные данные
+            cam.recording = {
+                mode: settings.mode,
+                enabled: settings.enabled,
+                segment_duration: settings.segment_duration,
+                archive_depth: settings.archive_depth,
+                quality: settings.quality,
+                fps: settings.fps,
+                format: settings.format,
+                schedule: settings.schedule
+            };
+            cam.detection = {
+                motion: settings.detect_motion,
+                qr: settings.detect_qr,
+                sensitivity: settings.sensitivity
+            };
             
-            status.innerHTML = `<span class="text-success">${message}</span>`;
-            if (detailsHtml) {
-                details.innerHTML = detailsHtml;
-                results.style.display = 'block';
-            }
-            loadCameras();
+            renderCameraList(); // Обновляем отображение в списке
         } else {
-            status.innerHTML = `<span class="text-danger">❌ Ошибка: ${data.error || 'Неизвестная ошибка'}</span>`;
+            showNotification('error', `❌ Ошибка: ${data.error}`);
         }
     })
-    .catch(error => {
-        status.innerHTML = `<span class="text-danger">❌ Ошибка: ${error.message}</span>`;
-    })
-    .finally(() => {
-        btn.disabled = false;
-        setTimeout(() => {
-            status.innerHTML = '';
-            results.style.display = 'none';
-        }, 5000);
+    .catch(err => {
+        showNotification('error', `❌ Ошибка: ${err.message}`);
     });
 }
 
-function showNotification(type, message) {
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
-    alertDiv.style.zIndex = '9999';
-    alertDiv.style.minWidth = '300px';
-    alertDiv.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-    document.body.appendChild(alertDiv);
-    setTimeout(() => alertDiv.remove(), 3000);
+// ===== СОХРАНЕНИЕ ВСЕХ НАСТРОЕК =====
+function saveAllSettings() {
+    if (currentCameraIndex === -1) return;
+    
+    const cam = cameras[currentCameraIndex];
+    
+    // Основные настройки
+    cam.name = document.getElementById('cameraName').value;
+    cam.type = document.getElementById('cameraType').value;
+    cam.username = document.getElementById('cameraUsername').value;
+    cam.password = document.getElementById('cameraPassword').value;
+    cam.rtsp_port = parseInt(document.getElementById('cameraRtspPort').value);
+    cam.port = parseInt(document.getElementById('cameraHttpPort').value);
+    
+    // Настройки детекции
+    if (!cam.detection) cam.detection = {};
+    cam.detection.person = document.getElementById('detectPerson').checked;
+    cam.detection.person_confidence = parseInt(document.getElementById('personConfidence').value);
+    cam.detection.car = document.getElementById('detectCar').checked;
+    cam.detection.car_confidence = parseInt(document.getElementById('carConfidence').value);
+    cam.detection.lpr = document.getElementById('detectLPR').checked;
+    cam.detection.whitelist = document.getElementById('whitelist').value.split('\n').filter(l => l.trim());
+    
+    // OSD настройки
+    if (!cam.osd) cam.osd = {};
+    cam.osd.enabled = document.getElementById('osdEnabled').checked;
+    cam.osd.port = parseInt(document.getElementById('osdPort').value);
+    cam.osd.time_format = document.getElementById('osdTimeFormat').value;
+    
+    if (!cam.osd.regions) cam.osd.regions = {};
+    cam.osd.regions[1] = {
+        text: document.getElementById('osdRegion1Text').value,
+        color: document.getElementById('osdRegion1Color').value,
+        size: parseInt(document.getElementById('osdRegion1Size').value)
+    };
+    cam.osd.regions[2] = {
+        text: document.getElementById('osdRegion2Text').value,
+        color: document.getElementById('osdRegion2Color').value,
+        size: parseInt(document.getElementById('osdRegion2Size').value)
+    };
+    
+    // Сохраняем в файл
+    fetch('/api/config/save', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({cameras: cameras})
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('success', '✅ Все настройки сохранены');
+        } else {
+            showNotification('error', `❌ Ошибка: ${data.error}`);
+        }
+    });
 }
 
-// Загружаем камеры при старте
-loadCameras();
+// ===== ТЕСТИРОВАНИЕ =====
+function testCameraRecording() {
+    if (currentCameraIndex === -1) return;
+    
+    const cam = cameras[currentCameraIndex];
+    showNotification('info', `Запуск тестовой записи на ${cam.name} (30 сек)...`);
+    
+    fetch('/api/recording/start', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            camera: cam.ip,
+            duration: 30
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('success', '✅ Тестовая запись запущена');
+        } else {
+            showNotification('error', `❌ Ошибка: ${data.error}`);
+        }
+    })
+    .catch(e => {
+        showNotification('error', `❌ Ошибка: ${e.message}`);
+    });
+}
+
+function testCamera() {
+    if (currentCameraIndex === -1) return;
+    
+    const cam = cameras[currentCameraIndex];
+    showNotification('info', `Тестирование камеры ${cam.name}...`);
+    
+    fetch(`/api/camera/${cam.ip}/snapshot`)
+        .then(r => {
+            if (r.ok) {
+                showNotification('success', '✅ Камера доступна');
+            } else {
+                showNotification('error', `❌ Ошибка HTTP ${r.status}`);
+            }
+        })
+        .catch(e => {
+            showNotification('error', `❌ Ошибка: ${e.message}`);
+        });
+}
+
+function deleteCamera() {
+    if (currentCameraIndex === -1) return;
+    
+    if (confirm('Удалить эту камеру?')) {
+        cameras.splice(currentCameraIndex, 1);
+        currentCameraIndex = -1;
+        renderCameraList();
+        
+        document.getElementById('noCameraSelected').style.display = 'flex';
+        document.getElementById('settingsPanel').style.display = 'none';
+        
+        // Сохраняем изменения
+        fetch('/api/config/save', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({cameras: cameras})
+        })
+        .then(() => {
+            showNotification('success', 'Камера удалена');
+        });
+    }
+}
+
+// ===== ИМПОРТ ИЗ HA =====
+function importFromHA() {
+    const btn = event.target;
+    const status = document.getElementById('importStatus');
+    
+    btn.disabled = true;
+    status.innerHTML = '⏳ Импорт...';
+    
+    fetch('/api/ha/import_cameras', {method: 'POST'})
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                status.innerHTML = `✅ Импортировано: ${data.imported.length}, обновлено: ${data.updated.length}`;
+                loadCameras();
+            } else {
+                status.innerHTML = `❌ Ошибка: ${data.error}`;
+            }
+        })
+        .catch(error => {
+            status.innerHTML = `❌ Ошибка: ${error.message}`;
+        })
+        .finally(() => {
+            btn.disabled = false;
+            setTimeout(() => status.innerHTML = '', 3000);
+        });
+}
+
+// ===== ДОБАВЛЕНИЕ КАМЕРЫ =====
+function addCamera(event) {
+    event.preventDefault();
+    
+    const newCamera = {
+        name: document.getElementById('name').value,
+        ip: document.getElementById('ip').value,
+        type: document.getElementById('type').value,
+        username: document.getElementById('username').value,
+        password: document.getElementById('password').value,
+        port: 80,
+        rtsp_port: 554,
+        recording: {
+            mode: 'continuous',
+            segment_duration: 300,
+            archive_depth: 7,
+            quality: 'medium',
+            fps: 15,
+            format: 'mp4',
+            enabled: true
+        },
+        detection: {
+            motion: true,
+            qr: true,
+            sensitivity: 5
+        },
+        snapshots: {
+            enabled: true,
+            format: 'jpg'
+        },
+        osd: {
+            enabled: true,
+            port: 9000,
+            time_format: "%d.%m.%Y %H:%M:%S",
+            regions: {
+                "1": {"text": "ДВЕРЬ ОТКРЫТА $t", "color": "#ff0000", "size": 48},
+                "2": {"text": "ЗАПИСЬ: 3 МИН", "color": "#ffff00", "size": 36}
+            }
+        }
+    };
+    
+    cameras.push(newCamera);
+    renderCameraList();
+    
+    document.getElementById('cameraForm').reset();
+    document.getElementById('username').value = 'root';
+    document.getElementById('password').value = '12345';
+    
+    // Сохраняем в файл
+    fetch('/api/config/save', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({cameras: cameras})
+    })
+    .then(() => {
+        showNotification('success', 'Камера добавлена');
+    });
+}
+
+// ===== УВЕДОМЛЕНИЯ =====
+function showNotification(type, message) {
+    // Используем функцию из base.html
+    if (window.showNotification) {
+        window.showNotification(type, message);
+    } else {
+        alert(message);
+    }
+}
 </script>
 {% endblock %}
