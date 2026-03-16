@@ -2,9 +2,13 @@
 set -e
 
 echo "========================================="
-echo "Starting OpenIPC Bridge Addon"
+echo "Starting OpenIPC Bridge Addon (HLS version)"
 echo "========================================="
 echo "$(date): Starting up..."
+
+# Создаем директорию для HLS сегментов
+mkdir -p /tmp/hls
+chmod 777 /tmp/hls
 
 # Безопасно добавляем системные пути
 if [ -d "/usr/lib/python3.12/site-packages" ]; then
@@ -55,6 +59,7 @@ echo "========================================="
 
 # Держим контейнер запущенным
 while true; do
+    # Проверяем, что ffmpeg процессы не зависли
     echo "$(date): OpenIPC Bridge running... (Flask PID: ${FLASK_PID:-unknown})"
     sleep 60
 done
