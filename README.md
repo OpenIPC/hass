@@ -423,14 +423,9 @@ Verify http dependency in manifest.json
 Check endpoint: http://[HA_IP]:8123/api/openipc/cameras
 # OpenIPC Camera for Home Assistant 🚀
 
-[![GitHub Release](https://img.shields.io/github/v/release/OpenIPC/hass)](https://github.com/OpenIPC/hass/releases)
-[![HACS Default](https://img.shields.io/badge/HACS-Default-orange.svg)](https://hacs.xyz)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Интеграция для управления камерами OpenIPC, Beward и Vivotek в Home Assistant с мощным веб-интерфейсом для расширенных функций.
-Integration for managing OpenIPC, Beward, and Vivotek cameras in Home Assistant with a powerful web interface for advanced features.
 
----
+
 
 ## ✨ Ключевые возможности / Key Features
 
