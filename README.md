@@ -421,7 +421,128 @@ Camera import from HA not working
 Verify http dependency in manifest.json
 
 Check endpoint: http://[HA_IP]:8123/api/openipc/cameras
+# OpenIPC Camera for Home Assistant 🚀
 
+[![GitHub Release](https://img.shields.io/github/v/release/OpenIPC/hass)](https://github.com/OpenIPC/hass/releases)
+[![HACS Default](https://img.shields.io/badge/HACS-Default-orange.svg)](https://hacs.xyz)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+Интеграция для управления камерами OpenIPC, Beward и Vivotek в Home Assistant с мощным веб-интерфейсом для расширенных функций.
+Integration for managing OpenIPC, Beward, and Vivotek cameras in Home Assistant with a powerful web interface for advanced features.
+
+---
+
+## ✨ Ключевые возможности / Key Features
+
+### 📹 Видеонаблюдение / Video Surveillance
+*   **RTSP потоки и снимки / RTSP streams and snapshots**
+*   **Запись в медиа-папку HA с OSD / Recording to HA media folder with OSD**
+*   PTZ управление для Vivotek / PTZ control for Vivotek
+*   Управление реле для Beward / Relay control for Beward
+
+### 📊 Мониторинг / Monitoring
+*   Температура CPU, FPS, битрейт / CPU temperature, FPS, bitrate
+*   Статус SD-карты, сетевая статистика / SD card status, network statistics
+*   Распознавание номеров (LNPR) для Beward / License plate recognition (LNPR) for Beward
+
+### 🔊 Text-to-Speech (TTS)
+*   **Google TTS** (облачный / cloud-based)
+*   **RHVoice** (локальный, голос "Анна" / local, "Anna" voice)
+*   Поддержка Beward (A-law) и OpenIPC (PCM) / Support for Beward (A-law) and OpenIPC (PCM)
+
+### 📱 Уведомления / Notifications
+*   Отправка фото и видео в Telegram / Send photos and videos to Telegram
+*   **Визуальный конструктор уведомлений / Visual notification builder**
+
+---
+
+## 🚀 Что нового 16 марта 2026 / What's New on March 16, 2026
+
+Это крупнейшее обновление нашего аддона `openipc-bridge`, которое превращает его в полноценную систему видеонаблюдения. Мы переработали архитектуру, добавили запись видео, умный мониторинг камер и многое другое!
+This is the biggest update to our `openipc-bridge` addon, turning it into a full-fledged video surveillance system. We've reworked the architecture, added video recording, smart camera monitoring, and much more!
+
+### 🎥 **Новая система записи / New Recording System**
+*   **Гибкие настройки:** Вы можете настроить качество записи (`high`/`medium`/`low`), FPS (5-30), и длительность сегмента (от 1 минуты до 1 часа) для каждой камеры индивидуально.
+    **Flexible settings:** You can now configure recording quality (`high`/`medium`/`low`), FPS (5-30), and segment duration (from 1 minute to 1 hour) for each camera individually.
+*   **Управление ресурсами:** Добавлен лимит на количество одновременных записей (по умолчанию 5), чтобы не перегружать систему, на которой запущен аддон. Вы можете легко изменить этот лимит в интерфейсе.
+    **Resource management:** A limit on the number of simultaneous recordings has been added (default 5) to prevent overloading the system running the addon. You can easily change this limit in the UI.
+*   **Автоматическая очистка:** Старые записи автоматически удаляются согласно заданной глубине архива (в днях).
+    **Automatic cleanup:** Old recordings are automatically deleted according to the set archive depth (in days).
+*   **Удобный архив:** Новая страница архива с мощными фильтрами (по нескольким камерам, дате и времени, типу событий), встроенным видеоплеером и временной шкалой с отметками событий.
+    **Convenient archive:** A new archive page with powerful filters (by multiple cameras, date & time, event type), a built-in video player, and a timeline with event marks.
+
+### 🔔 **Новые уведомления / New Notifications**
+*   **Централизованные настройки Telegram:** Все настройки Telegram (токен, chat ID, качество видео) теперь собраны на отдельной странице "Уведомления".
+    **Centralized Telegram settings:** All Telegram settings (token, chat ID, video quality) are now collected on a separate "Notifications" page.
+*   **Отправка снимков и видео:** Вы можете отправлять снимки прямо из плеера архива, а также видео (с возможностью сжатия для экономии трафика).
+    **Sending snapshots and videos:** You can send snapshots directly from the archive player, as well as videos (with the option to compress them to save traffic).
+
+### 🩺 **Мониторинг и автоматическое восстановление / Monitoring & Self-Healing**
+*   **Умный мониторинг majestic:** Аддон теперь самостоятельно следит за состоянием каждой OpenIPC камеры. Он проверяет не только ping, но и доступность RTSP-порта (554) и, что самое важное, анализирует метрики самого процесса `majestic` (температура, FPS, память), получаемые через `/metrics`.
+    **Smart majestic monitoring:** The addon now independently monitors the health of each OpenIPC camera. It checks not only ping but also the availability of the RTSP port (554) and, most importantly, analyzes the metrics of the `majestic` process itself (temperature, FPS, memory) obtained via `/metrics`.
+*   **Автоперезапуск:** Если `majestic` перестает отвечать (например, падает веб-интерфейс или пропадает RTSP), аддон автоматически перезапустит его через SSH после 3 неудачных проверок.
+    **Auto-restart:** If `majestic` becomes unresponsive (e.g., the web interface crashes or RTSP is lost), the addon will automatically restart it via SSH after 3 failed checks.
+*   **Ежедневные отчеты в Telegram:** Каждый день в 21:00 вы будете получать подробный отчет о состоянии всех ваших камер: сколько здоровых, сколько с предупреждениями, сколько было перезапусков и общая статистика по записям и снимкам.
+    **Daily Telegram reports:** Every day at 9:00 PM, you will receive a detailed report on the status of all your cameras: how many are healthy, how many have warnings, how many restarts occurred, and overall statistics on recordings and snapshots.
+
+### 🗄️ **Управление снимками / Snapshot Management**
+*   **Реальные снимки:** Страница "Снимки" теперь показывает реальные файлы из папки `/config/www/snapshots`, а не тестовые данные.
+    **Real snapshots:** The "Snapshots" page now displays actual files from the `/config/www/snapshots` folder, not mock data.
+*   **Удобный просмотр:** Добавлен просмотр в модальном окне с детальной информацией (время, камера, тип, размер) и возможностью скачать или отправить снимок в Telegram.
+    **Convenient viewing:** Added a modal view with detailed information (time, camera, type, size) and the ability to download or send the snapshot to Telegram.
+
+### ⚙️ **Улучшения интерфейса / UI Improvements**
+*   **Системная вкладка:** В настройках камер (`/config`) появилась новая вкладка "Система", где можно изменить лимит одновременных записей, применить настройки ко всем камерам сразу и увидеть статистику.
+    **System tab:** A new "System" tab has appeared in the camera settings (`/config`), where you can change the limit for simultaneous recordings, apply settings to all cameras at once, and see statistics.
+*   **Временные метки в архиве:** При просмотре видео на шкале времени теперь отображается абсолютное время записи, что позволяет точно понять, когда произошло событие.
+    **Timeline timestamps in archive:** When viewing a video, the absolute recording time is now displayed on the timeline, allowing you to know exactly when an event occurred.
+
+---
+
+## 🚧 **Планы на будущее / Future Plans**
+
+*   **Расширенная детекция объектов (Object Detection):** В следующих релизах мы планируем добавить настоящую детекцию людей, автомобилей и других объектов на базе ИИ.
+    **Advanced Object Detection:** In future releases, we plan to add real AI-based detection of people, cars, and other objects.
+*   **Распознавание номеров (LPR):** Текущие сенсоры для номеров являются заглушками. Полноценная поддержка LPR появится позже.
+    **License Plate Recognition (LPR):** The current license plate sensors are placeholders. Full LPR support will come later.
+
+
+---
+
+## 📦 Установка / Installation
+
+### 1. Аддон OpenIPC Bridge (Требуется для новых функций / Required for new features)
+1.  Перейдите в Supervisor → Add-on Store.
+2.  Нажмите на три точки (⋮) в правом верхнем углу и выберите "Repositories".
+3.  Добавьте репозиторий: `https://github.com/OpenIPC/hass`
+4.  Найдите и установите аддон **OpenIPC Bridge**.
+5.  После установки аддон будет доступен по адресу `http://[IP-АДРЕС-HA]:5000`
+
+### 2. Интеграция OpenIPC Camera
+*   **Через HACS (рекомендуется):**
+    1.  Откройте HACS → Integrations → ⋮ → Custom repositories.
+    2.  Добавьте `https://github.com/OpenIPC/hass` с категорией "Integration".
+    3.  Найдите "OpenIPC Camera" и установите.
+    4.  Перезапустите Home Assistant.
+*   **Вручную:**
+    Скопируйте папку `custom_components/openipc` в директорию `/config/custom_components/` и перезапустите HA.
+
+---
+
+## 🤝 Как помочь проекту / How to Contribute
+
+*   ⭐ Поставьте звезду на GitHub / Star us on GitHub
+*   🐛 Сообщайте об ошибках в Issues / Report bugs in Issues
+*   📝 Улучшайте документацию / Improve documentation
+*   🔧 Отправляйте Pull Request'ы / Submit Pull Requests
+
+---
+
+## 📜 Лицензия / License
+
+MIT License
+
+**OpenIPC Community - делаем умный дом доступнее! / making smart homes accessible!** 🚀
 
 🤝 Contributing
 ⭐ Star us on GitHub
